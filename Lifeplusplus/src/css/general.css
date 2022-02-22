@@ -1,0 +1,174 @@
+.parent{
+	-fx-background-color: white;
+}
+
+.BtnGeneral1{
+	-fx-background-color: #EB7193;
+	-fx-text-fill: #FFF;
+}
+
+.BtnGeneral1:hover{
+	-fx-background-color: transparent;
+	-fx-text-fill: #EB7193;
+	-fx-border-color: #EB7193;
+	-fx-border-width: 1px;
+	-fx-border-style: solid;
+}
+
+.BtnTexto1{
+	-fx-text-fill: #EB7193;
+}
+
+.BtnTexto1:hover{
+	-fx-text-fill: #EB7193;
+	-fx-underline: true;
+}
+
+.colorfondoppalpaciente{
+	-fx-background-color: linear-gradient( rgba(228,228,228,1), rgba(171,171,171,1) );
+}
+
+.botonNegro{
+	-fx-background-color: #000000;
+	-fx-text-fill: #FFFFFF;
+}
+
+.personajelogo {
+	-fx-background-image: url("../Img/16363.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center, center;
+    -fx-background-size: contain;
+	
+}
+
+.logoLifepp {
+	-fx-background-image: url("../Img/lifeplusplus.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center, center;
+    -fx-background-size: contain;
+	
+}
+
+.textolifeppimagen{
+	-fx-background-image: url("../Img/texto.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-position: center, center;
+	-fx-background-size: 90%;
+}
+
+.imagendoctor{
+	-fx-background-image: url("../Img/medico.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-position: center, center;
+	-fx-background-size: 50%;
+}
+
+.fondologin{
+	-fx-background-image: url("../Img/wallpaper2.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-position: bottom, bottom;
+	-fx-background-size: 100%;
+}
+
+.colorfondo{
+	-fx-background-color: linear-gradient(to right top, #E21950, #E21950);
+	-fx-background-radius: 30px;
+	-fx-border-radius: 30px;
+    -fx-border-width: 3px;
+	-fx-opacity: 0.6;
+}
+
+.logologin {
+	-fx-background-image: url("../Img/avatar.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center, center;
+    -fx-background-size: 25%;
+	
+}
+
+.BtnGeneral1{
+	-fx-background-color: #EB7193;
+	-fx-background-radius: 15px;
+	-fx-text-fill: #FFF;
+	-fx-border-radius: 15px;
+
+}
+
+.BtnGeneral1:hover{
+	-fx-background-color: transparent;
+	-fx-text-fill: #EB7193;
+	-fx-border-color: #EB7193;
+	-fx-border-width: 1px;
+	-fx-border-style: solid;
+}
+
+.textolifeppimagen{
+	-fx-background-image: url("../Img/texto.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-position: center, center;
+	-fx-background-size: 90%;
+}
+
+.fondologin{
+	-fx-background-image: url("../Img/wallpaperLOGIN.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-position: bottom, bottom;
+	-fx-background-size: 100%;
+}
+
+.logologin {
+	-fx-background-image: url("../Img/avatar.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center, center;
+    -fx-background-size: 25%;
+	
+}
+
+.fondoregistro{
+	-fx-background-image: url("../Img/wallpaperREGISTRO.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-position: bottom, bottom;
+	-fx-background-size: 100%;
+}
+
+.fondoregistroMedicos{
+	-fx-background-image: url("../Img/wallpaperREGISTROMEDICOS.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-position: bottom, bottom;
+	-fx-background-size: 100%;
+}
+
+.logoLifeppcontexto {
+	-fx-background-image: url("../Img/logolifepluspluscontexto.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center, center;
+	-fx-background-size: 90%;
+}
+
+.logologinpaciente {
+	-fx-background-image: url("../Img/avatarchica.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center, center;
+    -fx-background-size: 35%;
+	
+}
+
+.buttonppalpaciente {
+  -fx-background-color: #EB7193;
+  -fx-text-fill: #FFF;
+}
+
+.buttonppalpaciente:hover {
+	-fx-background-color: transparent;
+	-fx-text-fill: #EB7193;
+	-fx-border-color: #EB7193;
+	-fx-box-shadow: #EB7193 0 10px 20px -10px;
+}
+
+
+.fondoayuda{
+	-fx-background-image: url("../Img/fotoayuda.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-position: center, center;
+	-fx-background-size: 50%;
+}
