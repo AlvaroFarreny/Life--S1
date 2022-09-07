@@ -1,31 +1,17 @@
 package controlador;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXPasswordField;
 import com.jfoenix.controls.JFXTextField;
 
-import application.Medico;
-import application.Paciente;
-import application.TipoPersona;
+import bbdd.conexionesBBDD;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -35,8 +21,6 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import servicio.ServicioMedicos;
-import servicio.ServicioPacientes;
 
 /*
  * CONTROLADOR PANTALLA REGISTRO MEDICOS
@@ -55,12 +39,6 @@ public class RegistroMedicosControlador {
 	@FXML
 	private Label txtError;
 
-	private ServicioMedicos sm;
-
-	public RegistroMedicosControlador() {
-		sm = ServicioMedicos.getInstance();
-	}
-
 	/*
 	 * Metodo para aceptar el registro como medico Comprobacion de los campos
 	 * correctamente completados
@@ -73,9 +51,9 @@ public class RegistroMedicosControlador {
 		String correo = txtCorreoMedico.getText();
 		String institucion = txtInstitucionMedico.getText();
 		String rol = txtRolMedico.getText();
-		int identificacion = 0;
+		String identificacion = null;
 		try {
-			identificacion = Integer.parseInt(txtIdentificacionMedico.getText());
+			identificacion = txtIdentificacionMedico.getText();
 		} catch (Exception e) {
 
 		}
@@ -96,13 +74,13 @@ public class RegistroMedicosControlador {
 			txtError.setText("El nombre tiene que tener Nombre y Apellidos");
 		} else if (dni.isEmpty()) {
 			txtError.setText("El campo de DNI está vacío");
-		} else if (sm.checkIfExist(dni)) {
+		} /*else if (sm.checkIfExist(dni)) {
 			txtError.setText("El paciente ya está registrado");
-		} else if (institucion.isEmpty()) {
+		} */ else if (institucion.isEmpty()) {
 			txtError.setText("El campo de institución está vacío");
 		} else if (rol.isEmpty()) {
 			txtError.setText("El campo de rol está vacío");
-		} else if (identificacion <= 0) {
+		} else if (identificacion == null) {
 			txtError.setText("El campo de identificación no es correcto");
 		} else if (correo.isEmpty()) {
 			txtError.setText("El campo de correo está vacío");
@@ -120,10 +98,10 @@ public class RegistroMedicosControlador {
 			txtError.setText("Las contraseñas no coinciden");
 		} else {
 			try {
-				Medico m = new Medico(dni, nombre, password, correo, sdf.parse(fecha), institucion, rol,
-						identificacion);
-				sm.addSolicitud(m);
-				sm.saveSolicitudes();
+				conexionesBBDD.crearMedicos(dni, confirmPassword, nombre, correo, fecha, rol, identificacion, " ");
+				//Medico m = new Medico(dni, nombre, password, correo, sdf.parse(fecha), institucion, rol, identificacion);
+				//sm.addSolicitud(m);
+				//sm.saveSolicitudes();
 
 			} catch (Exception e) {
 				// TODO Auto-generated catch block

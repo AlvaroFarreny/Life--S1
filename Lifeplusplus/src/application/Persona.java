@@ -30,6 +30,15 @@ public class Persona {
 		this.password = nuevaPassword;
 		this.correo = nuevoCorreo;
 	}
+	
+	public Persona(String nuevoDni) { // Para el																						// Medico, Paciente)
+		this.dni = nuevoDni;
+	}
+	
+	public Persona(String nuevoDni, String nuevoNombre) { // Para el																						// Medico, Paciente)
+		this.dni = nuevoDni;
+		this.nombre = nuevoNombre;
+	}
 
 	/*
 	 * Constructor, construye una nueva persona con JSON

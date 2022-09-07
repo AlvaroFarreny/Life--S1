@@ -1,46 +1,25 @@
 package controlador;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.ResourceBundle;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTextArea;
 import com.jfoenix.controls.JFXTextField;
 
-import application.Developer;
-import application.Medico;
-import application.Paciente;
-import application.Persona;
-import application.Solicitud;
+import bbdd.conexionesBBDD;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
-import javafx.stage.FileChooser;
-import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
-import servicio.ServicioAyuda;
-import servicio.ServicioDevelopers;
-import servicio.ServicioLogin;
-import servicio.ServicioMedicos;
-import servicio.ServicioPacientes;
 
 /*
  * CONTROLADOR PARA PANTALLA DE SOLICITAR AYUDA
@@ -48,11 +27,9 @@ import servicio.ServicioPacientes;
 public class SolicitarAyuda {
 
 	@FXML
-	Label numDni;
-	@FXML
 	TextArea textAreaSolucion;
 	@FXML
-	private Label txterror;
+	private Label tituloPrincipal, numDni, txterror;
 	@FXML
 	private JFXButton btnRegresar;
 	@FXML
@@ -63,114 +40,76 @@ public class SolicitarAyuda {
 	/*
 	 * Variables para instanciar objetos especificos
 	 */
-	private Medico medicoRegreso = null;
-	private Paciente pacienteRegreso = null;
-	private Developer devRegreso = null;
-
-	private Medico medico;
-	private Paciente paciente;
-	private Solicitud Yo;
-
-	// Instanciar servicios
-	private ServicioMedicos sm = ServicioMedicos.getInstance();
-	private ServicioPacientes sp = ServicioPacientes.getInstance();
-	private ServicioDevelopers sd = ServicioDevelopers.getInstance();
-	private ServicioAyuda sa = ServicioAyuda.getInstance();
-	private ServicioLogin sl = ServicioLogin.getInstance();
-
-	private int posElegido;
 	private String dni_;
+	private String dniDev;
+	private int tipo; // De qué tipo de persona es la pantalla de la que venimos (1 -> paciente; 2 ->  medico; 3 -> developer)
+	
+	String sql;
+	Connection conexion = null;
+	PreparedStatement preparedStatement = null;
+	ResultSet resultSet = null;
 
-	/*
-	 * Getters
-	 */
-	public TextArea getSolucionArea() {
-		return textAreaSolucion;
+	
+	public void BloquearPregunta()
+	{
+		textAreaDescripcion.setEditable(false);
 	}
-
-	/*
-	 * Setters
-	 */
-	public void setPacienteRegreso(Paciente nuevoPacienteRegreso) {
-		pacienteRegreso = nuevoPacienteRegreso;
+	
+	public SolicitarAyuda(String nuevoDni, int nuevoTipo)
+	{
+		dni_ = nuevoDni;
+		tipo = nuevoTipo;
 	}
-
-	public void setMedicoRegreso(Medico nuevoMedicoRegreso) {
-		medicoRegreso = nuevoMedicoRegreso;
+	
+	public SolicitarAyuda(String nuevoDni, String nuevoDniDev)
+	{
+		dni_ = nuevoDni;
+		dniDev = nuevoDniDev;
+		tipo = 3;
 	}
-
-	public void setDevRegreso(Developer nuevoDevRegreso) {
-		devRegreso = nuevoDevRegreso;
-	}
-
-	public void setElegido(int nuevaPos) {
-		posElegido = nuevaPos;
-	}
-
-	public void setYo(Solicitud nuevoYo) {
-		Yo = nuevoYo;
-	}
-
+	
 	/*
 	 * Metodo para regresar a la pantalla anterior
 	 * 
 	 * @exception IOException
 	 */
+	
+	@FXML
+	void initialize() {
+		mostrarDatos();
+		tituloPrincipal.setText("Solicitar ayuda");
+	}
+	
+	@FXML
+	public void mostrarDatos() {
+		numDni.setText(dni_);
+		if (tipo == 3) {
+			conexion = conexionesBBDD.conectar();
+			try {
+	            preparedStatement = conexion.prepareStatement("SELECT * FROM Ayudas WHERE DniUsuario = ?");        
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	            if (resultSet.next()) {
+	            textAreaDescripcion.setText(resultSet.getString("Descripcion"));
+	            }
+	            else
+	            {
+	            	System.out.println("ERROR");
+	            }
+	            conexion.close();
+	        } catch (Exception e) {
+	        	System.out.println(e);
+	        }
+		}
+	}
+	
 	@FXML
 	public void Regresar(ActionEvent event) throws IOException {
-		if (pacienteRegreso != null) {
-			try {
-				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalPaciente.fxml"));
-				PpalPacienteControlador ppalPacienteControlador = new PpalPacienteControlador();
-				loader.setController(ppalPacienteControlador);
-				Parent rootLogin = loader.load();
-				Stage stage = new Stage();
-				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
-				stage.setTitle("Life++");
-				stage.setScene(new Scene(rootLogin));
-				ppalPacienteControlador.setYo(pacienteRegreso);
-				stage.setMinHeight(600);
-				stage.setMinWidth(600);
-				Stage s_login = (Stage) btnRegresar.getScene().getWindow();
-				stage.setHeight(s_login.getHeight());
-				stage.setWidth(s_login.getWidth());
-				stage.setX(s_login.getX());
-				stage.setY(s_login.getY());
-				stage.show();
-				s_login.hide();
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else if (medicoRegreso != null) {
-			try {
-				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalMedico.fxml"));
-				PpalMedicoControlador ppalMedicoControlador = new PpalMedicoControlador();
-				loader.setController(ppalMedicoControlador);
-				Parent rootLogin = loader.load();
-				Stage stage = new Stage();
-				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
-				stage.setTitle("Life++");
-				stage.setScene(new Scene(rootLogin));
-				ppalMedicoControlador.setYo(medicoRegreso);
-				stage.setMinHeight(600);
-				stage.setMinWidth(600);
-				Stage s_login = (Stage) btnRegresar.getScene().getWindow();
-				stage.setHeight(s_login.getHeight());
-				stage.setWidth(s_login.getWidth());
-				stage.setX(s_login.getX());
-				stage.setY(s_login.getY());
-				stage.show();
-				s_login.hide();
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else if (devRegreso != null) {
+		if (tipo == 3) { // VOLVER A DEVELOPER
 			try {
 				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalDeveloper.fxml"));
-				PpalDeveloperControlador ppalDeveloperControlador = new PpalDeveloperControlador();
-				ppalDeveloperControlador.setYo(devRegreso);
+				PpalDeveloperControlador ppalDeveloperControlador = new PpalDeveloperControlador(dniDev);
 				loader.setController(ppalDeveloperControlador);
 				Parent rootLogin = loader.load();
 				Stage stage = new Stage();
@@ -191,25 +130,55 @@ public class SolicitarAyuda {
 				e.printStackTrace();
 			}
 		}
-	}
+		else if(tipo == 1) { // VOLVER A PACIENTE
+			try {
+				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalPaciente.fxml"));
+				PpalPacienteControlador ppalPacienteControlador = new PpalPacienteControlador(dni_);
+				loader.setController(ppalPacienteControlador);
+				Parent rootLogin = loader.load();
+				Stage stage = new Stage();
+				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
+				stage.setTitle("Life++");
+				stage.setScene(new Scene(rootLogin));
+				stage.setMinHeight(600);
+				stage.setMinWidth(600);
+				Stage s_login = (Stage) btnRegresar.getScene().getWindow();
+				stage.setHeight(s_login.getHeight());
+				stage.setWidth(s_login.getWidth());
+				stage.setX(s_login.getX());
+				stage.setY(s_login.getY());
+				stage.show();
+				s_login.hide();
+	
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else { // VOLVER A MEDICO
+			try {
+				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalMedico.fxml"));
+				PpalMedicoControlador ppalMedicoControlador = new PpalMedicoControlador(dni_);
+				loader.setController(ppalMedicoControlador);
+				Parent rootLogin = loader.load();
+				Stage stage = new Stage();
+				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
+				stage.setTitle("Life++");
+				stage.setScene(new Scene(rootLogin));
+				stage.setMinHeight(600);
+				stage.setMinWidth(600);
+				Stage s_login = (Stage) btnRegresar.getScene().getWindow();
+				stage.setHeight(s_login.getHeight());
+				stage.setWidth(s_login.getWidth());
+				stage.setX(s_login.getX());
+				stage.setY(s_login.getY());
+				stage.show();
+				s_login.hide();
 
-	/*
-	 * Metodo para mostrar datos de la solicitud
-	 */
-	@FXML
-	public void mostrarDatos() {
-		if (devRegreso != null) {
-			numDni.setText(Yo.getDni());
-			textAreaDescripcion.setText(Yo.getDescripcion());
-			textAreaSolucion.setText(Yo.getSolucion());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
-
-	@FXML
-	void initialize() {
-		mostrarDatos();
-	}
-
+	
 	/*
 	 * Metodo para confirmar el envio de la solicitud
 	 * 
@@ -219,27 +188,43 @@ public class SolicitarAyuda {
 	public void ConfirmarEnvioAyuda(ActionEvent event) throws ParseException {
 		String Descripcion = textAreaDescripcion.getText();
 		String Solucion = textAreaSolucion.getText();
-		Boolean Medico = true;
-		String dni = sl.getLogedUser().getDni();
-		String nombre = sl.getLogedUser().getNombre();
-		String password = sl.getLogedUser().getPassword();
-		String correo = sl.getLogedUser().getCorreo();
-
-		if (Descripcion.isEmpty()) {
+		if(Descripcion.isEmpty()) {
 			txterror.setText("El campo de nombre está vacío");
 		} else {
+			conexion = conexionesBBDD.conectar();
+			try {
+				System.out.println("Entro en el try");
+				preparedStatement = conexion.prepareStatement("DELETE FROM Ayudas WHERE DniUsuario = ?");
+				preparedStatement.setString(1, this.dni_);
+				resultSet = preparedStatement.executeQuery();
+                
+	            if (resultSet.next()) {
+	            	//tipopersona = resultSet.getInt("Tipo");
+	            }else {
+	            	//System.out.println("COMPLETADO CORRECTAMENTE");
+	            }
+	            System.out.println("He borrado el dato");
+				preparedStatement = conexion.prepareStatement("INSERT INTO Ayudas (Descripcion, Solucion, DniUsuario) values('"+Descripcion+"','"+Solucion+"','"+dni_+"')");
+				System.out.println("He procesado la segunda accion");
+				preparedStatement.setString(1, this.dni_);     
+	            resultSet = preparedStatement.executeQuery();
+	            System.out.println("He añadido el dato");
+	                        
+	            if (resultSet.next()) {
+	            	//tipopersona = resultSet.getInt("Tipo");
+	            }else {
+	            	//System.out.println("COMPLETADO CORRECTAMENTE");
+	            }	            
+	            conexion.close();
+	            System.out.println("He cerrado la conexion");
 
-			if (pacienteRegreso != null) { // NO ES MEDICO POR TANTO:
-				Medico = false;
-				Solicitud s = new Solicitud(dni, nombre, password, correo, Descripcion, Solucion, Medico);
-				sa.editarRespuesta(numDni.getText(), textAreaSolucion.getText());
-				sa.addSolicitudes(s);
-				sa.saveSolicitudes();
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
+			if (tipo == 1) { // SOY PACIENTE				
 				try {
 					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalPaciente.fxml"));
-					PpalPacienteControlador ppalPacienteControlador = new PpalPacienteControlador();
-					// ppalPacienteControlador.setYo(sp.getPaciente(pacienteElegido.getDni(),
-					// pacienteElegido.getPassword()));
+					PpalPacienteControlador ppalPacienteControlador = new PpalPacienteControlador(dni_);
 					loader.setController(ppalPacienteControlador);
 					Parent rootLogin = loader.load();
 					Stage stage = new Stage();
@@ -259,16 +244,11 @@ public class SolicitarAyuda {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-			} else if (devRegreso != null) // SOY EL DEVELOPER
+			} else if (tipo == 3) // SOY EL DEVELOPER
 			{
-				Medico = false;
-
-				sa.editarRespuesta(Yo.getDni(), textAreaSolucion.getText());
-				sa.saveSolicitudes();
 				try {
 					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalDeveloper.fxml"));
-					PpalDeveloperControlador ppalDeveloperControlador = new PpalDeveloperControlador();
-					ppalDeveloperControlador.setYo(devRegreso);
+					PpalDeveloperControlador ppalDeveloperControlador = new PpalDeveloperControlador(dni_);
 					loader.setController(ppalDeveloperControlador);
 					Parent rootLogin = loader.load();
 					Stage stage = new Stage();
@@ -289,20 +269,15 @@ public class SolicitarAyuda {
 					e.printStackTrace();
 				}
 			} else { // SI ES MEDICO!
-				Solicitud s = new Solicitud(dni, nombre, password, correo, Descripcion, Solucion, Medico);
-				sa.editarRespuesta(numDni.getText(), textAreaSolucion.getText());
-				sa.addSolicitudes(s);
-				sa.saveSolicitudes();
 				try {
 					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalMedico.fxml"));
-					PpalMedicoControlador ppalMedicoControlador = new PpalMedicoControlador();
+					PpalMedicoControlador ppalMedicoControlador = new PpalMedicoControlador(dni_);
 					loader.setController(ppalMedicoControlador);
 					Parent rootLogin = loader.load();
 					Stage stage = new Stage();
 					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
 					stage.setTitle("Life++");
 					stage.setScene(new Scene(rootLogin));
-					ppalMedicoControlador.setYo(medicoRegreso);
 					stage.setMinHeight(600);
 					stage.setMinWidth(600);
 					Stage s_login = (Stage) btnRegresar.getScene().getWindow();
@@ -319,5 +294,12 @@ public class SolicitarAyuda {
 			}
 		}
 	}
-
+	
+	/*
+	 * Getters
+	 */
+	
+	public TextArea getSolucionArea() {
+		return textAreaSolucion;
+	}
 }

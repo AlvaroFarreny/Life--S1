@@ -2,6 +2,9 @@ package controlador;
 
 import java.io.IOException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -15,6 +18,7 @@ import com.jfoenix.controls.JFXTextField;
 import application.Developer;
 import application.Medico;
 import application.Paciente;
+import bbdd.conexionesBBDD;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -25,9 +29,6 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import servicio.ServicioDevelopers;
-import servicio.ServicioMedicos;
-import servicio.ServicioPacientes;
 
 /*
  * CONTROLADOR PANTALLA EDITAR USUARIO
@@ -37,8 +38,7 @@ public class EditarUsuarioControlador implements Initializable {
 	@FXML
 	private JFXTextField txtNombre, txtDni, txtCorreo, txtInstitucion, txtIdentificacion, txtRol;
 	@FXML
-	private JFXButton btnFecha, btnInstitucion, btnIdentificacion, btnRol, btnRegresar, btnDarBaja, btnAceptarSolicitud,
-			btnRechazar;
+	private JFXButton btnFecha, btnInstitucion, btnIdentificacion, btnRol, btnRegresar, btnDarBaja, btnAceptarSolicitud, btnRechazar;
 	@FXML
 	private Label tituloFecha, tituloDni, tituloInstitucion, tituloIdentificacion, tituloRol, feedback;
 	@FXML
@@ -46,25 +46,34 @@ public class EditarUsuarioControlador implements Initializable {
 	@FXML
 	private JFXPasswordField fieldContrasena;
 
+	String dni_;
+	String dniRegreso_;
+	public EditarUsuarioControlador(String dni_) {
+		this.dni_ = dni_;
+	}
+	
+	public EditarUsuarioControlador(String dni_, String dniRegreso_) {
+		this.dni_ = dni_;
+		this.dniRegreso_ = dniRegreso_;
+	}
+	
 	/*
 	 * Variables para instanciar objetos especificos
 	 */
 	private Medico medicoRegreso = null;
 	private Paciente pacienteRegreso = null;
-	private Developer devRegreso = null;
 	private Medico medicoElegido = null;
 	private Paciente pacienteElegido = null;
 	private Developer devElegido = null;
 
-	/*
-	 * Instanciar los servicios
-	 */
-	private ServicioMedicos sm = ServicioMedicos.getInstance();
-	private ServicioPacientes sp = ServicioPacientes.getInstance();
-	private ServicioDevelopers sd = ServicioDevelopers.getInstance();
-
 	int posElegido = 0;
 	String txtCheck;
+	
+	//COPIAR ESTO PARA QUE FUNCIONE LA SQL
+	String sql;
+	Connection conexion = null;
+	PreparedStatement preparedStatement = null;
+	ResultSet resultSet = null;
 
 	/*
 	 * Metodo para obtener una fecha en formato local
@@ -100,20 +109,94 @@ public class EditarUsuarioControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void DarBaja() throws IOException {
-		txtCheck = btnDarBaja.getText();
+		int tipopersona = 0;
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT LOGIN.Tipo FROM LOGIN WHERE DNI = ?");
+            
+            preparedStatement.setString(1, this.dni_);
+            
+            resultSet = preparedStatement.executeQuery();
+                        
+            if (resultSet.next()) {
+            	tipopersona = resultSet.getInt("Tipo");
+            }else {
+            	System.out.println("ERROR");
+            }
+            
+            conexion.close();
 
-		if (txtCheck.equals("Dar de baja")) {
-			btnDarBaja.setText("Confirmar dar de baja");
-		} else {
-			if (pacienteElegido == null) {
-				sm.getMedicos().remove(posElegido);
-				sm.saveMedicos();
-			} else {
-				sp.getPacientes().remove(posElegido);
-				sp.savePacientes();
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		
+		if (tipopersona==1) { //PACIENTE
+			conexion = conexionesBBDD.conectar();
+			try {
+	            preparedStatement = conexion.prepareStatement("DELETE FROM PACIENTES WHERE DNI = \'"+dni_+"\'");
+	            
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	                        
+	            if (resultSet.next()) {
+	            	System.out.println("ERROR!");
+	            }else {
+	            	System.out.println("Eliminado Correctamente!");
+	            }
+	            
+	            conexion.close();
+
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
+			
+			conexion = conexionesBBDD.conectar();
+			try {
+	            preparedStatement = conexion.prepareStatement("DELETE FROM LOGIN WHERE DNI = \'"+dni_+"\'");
+	            
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	                        
+	            if (resultSet.next()) {
+	            	System.out.println("Error!");
+	            }else {
+	            	System.out.println("Eliminado Correctamente!");
+	            }
+	            
+	            conexion.close();
+
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
+			
+			try {
+				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/Login.fxml"));
+				LoginControlador controlLogin = new LoginControlador();
+				loader.setController(controlLogin);
+				Parent rootLogin = loader.load();
+				Stage stage = new Stage();
+				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
+				stage.setTitle("Life++");
+				stage.setScene(new Scene(rootLogin));
+				stage.setMinHeight(600);
+				stage.setMinWidth(600);
+				Stage s_login = (Stage) btnRegresar.getScene().getWindow();
+				stage.setHeight(s_login.getHeight());
+				stage.setWidth(s_login.getWidth());
+				stage.setX(s_login.getX());
+				stage.setY(s_login.getY());
+				stage.show();
+				s_login.hide();
+
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-			Regresar(new ActionEvent());
-		}
+			
+		} else { //DEV
+		
+	}
 	}
 
 	/*
@@ -122,7 +205,7 @@ public class EditarUsuarioControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void AceptarSolicitud(ActionEvent event) throws IOException {
-		sm.getSolicitudes().remove(posElegido);
+		/*sm.getSolicitudes().remove(posElegido);
 		sm.saveSolicitudes();
 
 		Medico nuevoMedico = medicoElegido;
@@ -136,7 +219,7 @@ public class EditarUsuarioControlador implements Initializable {
 		nuevoMedico.setNacimiento(LocalToDate(cuadroFecha.getValue()));
 
 		sm.getMedicos().add(nuevoMedico);
-		sm.saveMedicos();
+		sm.saveMedicos();*/
 
 		Regresar(new ActionEvent());
 	}
@@ -147,7 +230,7 @@ public class EditarUsuarioControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void RechazarSolicitud(ActionEvent event) throws IOException {
-		txtCheck = btnRechazar.getText();
+		/*txtCheck = btnRechazar.getText();
 
 		if (txtCheck.equals("Rechazar")) {
 			btnRechazar.setText("Confirmar rechazar");
@@ -156,7 +239,7 @@ public class EditarUsuarioControlador implements Initializable {
 			sm.saveSolicitudes();
 
 			Regresar(new ActionEvent());
-		}
+		}*/
 	}
 
 	/*
@@ -165,11 +248,79 @@ public class EditarUsuarioControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void Regresar(ActionEvent event) throws IOException {
-		if (devRegreso != null) {
+		int tipopersona = 0;
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT LOGIN.Tipo FROM LOGIN WHERE DNI = ?");
+            
+            preparedStatement.setString(1, this.dni_);
+            
+            resultSet = preparedStatement.executeQuery();
+                        
+            if (resultSet.next()) {
+            	tipopersona = resultSet.getInt("Tipo");
+            }else {
+            	System.out.println("ERROR");
+            }
+            
+            conexion.close();
+
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		
+		if(dniRegreso_ == null) {	
+			if (tipopersona==1) { //PACIENTE
+				try {
+					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalPaciente.fxml"));
+					PpalPacienteControlador ppalPacienteControlador = new PpalPacienteControlador(dni_);
+					//ppalPacienteControlador.setYo(sp.getPaciente(pacienteRegreso.getDni(), pacienteRegreso.getPassword()));
+					loader.setController(ppalPacienteControlador);
+					Parent rootLogin = loader.load();
+					Stage stage = new Stage();
+					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
+					stage.setTitle("Life++");
+					stage.setScene(new Scene(rootLogin));
+					stage.setMinHeight(600);
+					stage.setMinWidth(600);
+					Stage s_login = (Stage) btnRol.getScene().getWindow();
+					//stage.setHeight(s_login.getHeight());
+					//stage.setWidth(s_login.getWidth());
+					stage.setX(s_login.getX());
+					stage.setY(s_login.getY());
+					stage.show();
+					s_login.hide();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else { //MEDICO
+				try {
+					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalMedico.fxml"));
+					PpalMedicoControlador ppalMedicoControlador = new PpalMedicoControlador(dni_);
+					loader.setController(ppalMedicoControlador);
+					Parent rootLogin = loader.load();
+					Stage stage = new Stage();
+					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
+					stage.setTitle("Life++");
+					stage.setScene(new Scene(rootLogin));
+					stage.setMinHeight(600);
+					stage.setMinWidth(600);
+					Stage s_login = (Stage) btnRol.getScene().getWindow();
+					stage.setHeight(s_login.getHeight());
+					stage.setWidth(s_login.getWidth());
+					stage.setX(s_login.getX());
+					stage.setY(s_login.getY());
+					stage.show();
+					s_login.hide();
+	
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} else { //DEV
 			try {
 				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalDeveloper.fxml"));
-				PpalDeveloperControlador ppalDeveloperControlador = new PpalDeveloperControlador();
-				ppalDeveloperControlador.setYo(devRegreso);
+				PpalDeveloperControlador ppalDeveloperControlador = new PpalDeveloperControlador(dniRegreso_);
 				loader.setController(ppalDeveloperControlador);
 				Parent rootLogin = loader.load();
 				Stage stage = new Stage();
@@ -189,55 +340,6 @@ public class EditarUsuarioControlador implements Initializable {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		} else if (medicoRegreso != null) {
-			try {
-				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalMedico.fxml"));
-				PpalMedicoControlador ppalMedicoControlador = new PpalMedicoControlador();
-				ppalMedicoControlador.setYo(medicoRegreso);
-				loader.setController(ppalMedicoControlador);
-				Parent rootLogin = loader.load();
-				Stage stage = new Stage();
-				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
-				stage.setTitle("Life++");
-				stage.setScene(new Scene(rootLogin));
-				stage.setMinHeight(600);
-				stage.setMinWidth(600);
-				Stage s_login = (Stage) btnRol.getScene().getWindow();
-				stage.setHeight(s_login.getHeight());
-				stage.setWidth(s_login.getWidth());
-				stage.setX(s_login.getX());
-				stage.setY(s_login.getY());
-				stage.show();
-				s_login.hide();
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else if (pacienteRegreso != null) {
-			try {
-				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalPaciente.fxml"));
-				PpalPacienteControlador ppalPacienteControlador = new PpalPacienteControlador();
-				ppalPacienteControlador.setYo(sp.getPaciente(pacienteRegreso.getDni(), pacienteRegreso.getPassword()));
-				loader.setController(ppalPacienteControlador);
-				Parent rootLogin = loader.load();
-				Stage stage = new Stage();
-				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
-				stage.setTitle("Life++");
-				stage.setScene(new Scene(rootLogin));
-				stage.setMinHeight(600);
-				stage.setMinWidth(600);
-				Stage s_login = (Stage) btnRol.getScene().getWindow();
-				stage.setHeight(s_login.getHeight());
-				stage.setWidth(s_login.getWidth());
-				stage.setX(s_login.getX());
-				stage.setY(s_login.getY());
-				stage.show();
-				s_login.hide();
-				;
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
 		}
 	}
 
@@ -246,18 +348,33 @@ public class EditarUsuarioControlador implements Initializable {
 	 * 
 	 * @param elegido Medico, el medico que se va a editar
 	 */
-	public void setMedicoEditable(Medico elegido) {
-		medicoElegido = elegido;
+	public void setMedicoEditable(String dni_) {
+		tituloInstitucion.setVisible(false);
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT MEDICOS.Nombre, MEDICOS.Correo, MEDICOS.DNI, MEDICOS.FechaNacim, MEDICOS.pass, MEDICOS.Rol, MEDICOS.IDinstitucion FROM MEDICOS WHERE DNI = ?");
+            
+            preparedStatement.setString(1, this.dni_);
+            
+            resultSet = preparedStatement.executeQuery();
+                        
+            if (resultSet.next()) {
+            	txtNombre.setText(resultSet.getString("Nombre"));
+            	txtCorreo.setText(resultSet.getString("Correo"));
+            	txtDni.setText(resultSet.getString("DNI"));
+            	fieldContrasena.setText(resultSet.getString("pass"));
+            	txtIdentificacion.setText(resultSet.getString("IDinstitucion"));
+        		txtRol.setText(resultSet.getString("Rol"));
+        		cuadroFecha.setPromptText(resultSet.getString("FechaNacim"));
+            }else {
+            	System.out.println("ERROR");
+            }
+            
+            conexion.close();
 
-		txtNombre.setText(medicoElegido.getNombre());
-		txtDni.setText(medicoElegido.getDni());
-		txtCorreo.setText(medicoElegido.getCorreo());
-		fieldContrasena.setText(medicoElegido.getPassword());
-		txtInstitucion.setText(medicoElegido.getInstitucion());
-		txtIdentificacion.setText(String.valueOf(medicoElegido.getIdentificacionInstitucion()));
-		txtRol.setText(medicoElegido.getRol());
-		LocalDate localDateFecha = DateToLocal(medicoElegido.getNacimiento());
-		cuadroFecha.setValue(localDateFecha);
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
 	}
 
 	/*
@@ -265,15 +382,31 @@ public class EditarUsuarioControlador implements Initializable {
 	 * 
 	 * @param elegido Paciente, el paciente que se va a editar
 	 */
-	public void setPacienteEditable(Paciente elegido) {
-		pacienteElegido = elegido;
+	public void setPacienteEditable(String dni_) {	
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT PACIENTES.Nombre, PACIENTES.Correo, PACIENTES.DNI, PACIENTES.FechaNacim, PACIENTES.pass FROM PACIENTES WHERE DNI = ?");
+            
+            preparedStatement.setString(1, this.dni_);
+            
+            resultSet = preparedStatement.executeQuery();
+                        
+            if (resultSet.next()) {
+            	txtNombre.setText(resultSet.getString("Nombre"));
+            	txtCorreo.setText(resultSet.getString("Correo"));
+            	txtDni.setText(resultSet.getString("DNI"));
+            	fieldContrasena.setText(resultSet.getString("pass"));
+            	cuadroFecha.setPromptText(resultSet.getString("FechaNacim"));
+            } else {
+            	System.out.println("ERROR");
+            }
+            
+            conexion.close();
 
-		txtNombre.setText(pacienteElegido.getNombre());
-		txtDni.setText(pacienteElegido.getDni());
-		txtCorreo.setText(pacienteElegido.getCorreo());
-		fieldContrasena.setText(pacienteElegido.getPassword());
-		LocalDate localDateFecha = DateToLocal(pacienteElegido.getNacimiento());
-		cuadroFecha.setValue(localDateFecha);
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		
 		txtInstitucion.setVisible(false);
 		txtIdentificacion.setVisible(false);
 		txtRol.setVisible(false);
@@ -282,7 +415,7 @@ public class EditarUsuarioControlador implements Initializable {
 		btnRol.setVisible(false);
 		tituloInstitucion.setVisible(false);
 		tituloIdentificacion.setVisible(false);
-		tituloRol.setVisible(false);
+		tituloRol.setVisible(false);	
 	}
 
 	/*
@@ -316,58 +449,168 @@ public class EditarUsuarioControlador implements Initializable {
 	 * Metodo para actualizar datos de la persona que se edite
 	 */
 	public void Actualizar(ActionEvent event) {
-		if (medicoElegido != null) {
-			Medico nuevoMedico = medicoElegido;
-			nuevoMedico.setNombre(txtNombre.getText());
-			nuevoMedico.setDni(txtDni.getText());
-			nuevoMedico.setCorreo(txtCorreo.getText());
-			nuevoMedico.setInstitucion(txtInstitucion.getText());
-			nuevoMedico.setIdentificacionInstitucion(Integer.parseInt(txtIdentificacion.getText()));
-			nuevoMedico.setRol(txtRol.getText());
-			nuevoMedico.setPassword(fieldContrasena.getText());
-			nuevoMedico.setNacimiento(LocalToDate(cuadroFecha.getValue()));
+		int tipopersona = 0;
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT LOGIN.Tipo FROM LOGIN WHERE DNI = ?");
+            
+            preparedStatement.setString(1, this.dni_);
+            
+            resultSet = preparedStatement.executeQuery();
+                        
+            if (resultSet.next()) {
+            	tipopersona = resultSet.getInt("Tipo");
+            }else {
+            	System.out.println("ERROR");
+            }
+            
+            conexion.close();
 
-			sm.getMedicos().remove(posElegido);
-			sm.getMedicos().add(nuevoMedico);
-			posElegido = sm.getMedicos().size() - 1;
-			sm.saveMedicos();
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		
+		if(tipopersona == 1) { //SOY PACIENTE
 
-		} else if (pacienteElegido != null) {
-			Paciente nuevoPaciente = pacienteElegido;
-			nuevoPaciente.setNombre(txtNombre.getText());
-			nuevoPaciente.setDni(txtDni.getText());
-			nuevoPaciente.setCorreo(txtCorreo.getText());
-			nuevoPaciente.setPassword(fieldContrasena.getText());
-			nuevoPaciente.setNacimiento(LocalToDate(cuadroFecha.getValue()));
+			String nuevoPacienteNombre  = txtNombre.getText();
+			String nuevoPacientedDni = txtDni.getText();
+			String nuevoPacienteCorreo  = txtCorreo.getText();
+			String nuevoPacientePass  = fieldContrasena.getText();
+			LocalDate nuevoPacienteFech = cuadroFecha.getValue();
+			
+			conexion = conexionesBBDD.conectar();
+			try {
+				if(cuadroFecha.getValue() != null)
+				{
+					preparedStatement = conexion.prepareStatement("UPDATE PACIENTES SET Dni = \'"+nuevoPacientedDni+"\', Nombre =\'"+nuevoPacienteNombre+"\', Correo = \'"+nuevoPacienteCorreo+"\', pass=\'"+nuevoPacientePass+"\', FechaNacim = \'"+nuevoPacienteFech+"\' WHERE Dni = \'"+dni_+"\'");			
+				}
+				else {
+					preparedStatement = conexion.prepareStatement("UPDATE PACIENTES SET Dni = \'"+nuevoPacientedDni+"\', Nombre =\'"+nuevoPacienteNombre+"\', Correo = \'"+nuevoPacienteCorreo+"\', pass=\'"+nuevoPacientePass+"\' WHERE Dni = \'"+dni_+"\'");
+				}
+	            //FALTA ESTO FechaNacim ='1/1/2022'
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	                        
+	            if (resultSet.next()) {
+	            	//tipopersona = resultSet.getInt("Tipo");
+	            }else {
+	            	//System.out.println("COMPLETADO CORRECTAMENTE");
+	            }
+	            
+	            preparedStatement = conexion.prepareStatement("UPDATE LOGIN SET DNI = \'"+nuevoPacientedDni+"\', PASS = \'"+nuevoPacientePass+"\', TIPO = \'1\'  WHERE Dni = \'"+dni_+"\'");
+	            //FALTA ESTO FechaNacim ='1/1/2022'
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	                        
+	            if (resultSet.next()) {
+	            	//tipopersona = resultSet.getInt("Tipo");
+	            }else {
+	            	System.out.println("COMPLETADO CORRECTAMENTE");
+	            }
+	            conexion.close();
 
-			sp.getPacientes().remove(posElegido);
-			sp.getPacientes().add(nuevoPaciente);
-			posElegido = sp.getPacientes().size() - 1;
-			sp.savePacientes();
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
+			
+		} else if (tipopersona == 2) { //SOY MEDICO
+			
+			String nuevoMedicoNombre  = txtNombre.getText();
+			String nuevoMedicoDni = txtDni.getText();
+			String nuevoMedicoCorreo  = txtCorreo.getText();
+			String nuevoMedicoPass  = fieldContrasena.getText();
+			String nuevoMedicoIdentificacionInstitucion  = txtIdentificacion.getText();
+			String nuevoMedicoRol  = txtRol.getText();
+			
+			//String nuevoMedicoFech = LocalToDate(cuadroFecha.getValue());
 
-		} else {
-			Developer nuevoDeveloper = devElegido;
-			devElegido.setNombre(txtNombre.getText());
-			devElegido.setDni(txtDni.getText());
-			devElegido.setCorreo(txtCorreo.getText());
-			devElegido.setPassword(fieldContrasena.getText());
+			conexion = conexionesBBDD.conectar();
+			try {
+	            preparedStatement = conexion.prepareStatement("UPDATE MEDICOS SET Dni = \'"+nuevoMedicoDni+"\', Nombre =\'"+nuevoMedicoNombre+"\', Correo = \'"+nuevoMedicoCorreo+"\', pass=\'"+nuevoMedicoPass+"\', IDinstitucion=\'"+nuevoMedicoIdentificacionInstitucion+"\', Rol=\'"+nuevoMedicoRol+"\' WHERE Dni = \'"+dni_+"\'");
+	            //FALTA ESTO FechaNacim ='1/1/2022'
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	                        
+	            if (resultSet.next()) {
+	            	//tipopersona = resultSet.getInt("Tipo");
+	            }else {
+	            	//System.out.println("COMPLETADO CORRECTAMENTE");
+	            }
+	            
+	            preparedStatement = conexion.prepareStatement("UPDATE LOGIN SET DNI = \'"+nuevoMedicoDni+"\', PASS = \'"+nuevoMedicoPass+"\', TIPO = \'2\' WHERE Dni = \'"+dni_+"\'");
+	            //FALTA ESTO FechaNacim ='1/1/2022'
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	                        
+	            if (resultSet.next()) {
+	            	//tipopersona = resultSet.getInt("Tipo");
+	            }else {
+	            	System.out.println("COMPLETADO CORRECTAMENTE");
+	            }
+	            conexion.close();
 
-			sd.getDevelopers().remove(posElegido);
-			sd.getDevelopers().add(nuevoDeveloper);
-			posElegido = sd.getDevelopers().size() - 1;
-			sd.saveDevelopers();
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
+			
+		} else { //SOY DEVELOPER
+			String nuevoDevNombre  = txtNombre.getText();
+			String nuevoDevDni = txtDni.getText();
+			String nuevoDevCorreo  = txtCorreo.getText();
+			String Dev = fieldContrasena.getText();
+			
+			//String nuevoMedicoFech = LocalToDate(cuadroFecha.getValue());
+
+			conexion = conexionesBBDD.conectar();
+			try {
+	            preparedStatement = conexion.prepareStatement("UPDATE MEDICOS SET Dni = \'"+nuevoDevNombre+"\', Nombre =\'"+nuevoDevNombre+"\', Correo = \'"+nuevoDevCorreo+"\', pass=\'"+Dev+"\' WHERE Dni = \'"+dni_+"\'");
+	            //FALTA ESTO FechaNacim ='1/1/2022'
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	                        
+	            if (resultSet.next()) {
+	            	//tipopersona = resultSet.getInt("Tipo");
+	            }else {
+	            	//System.out.println("COMPLETADO CORRECTAMENTE");
+	            }
+	            
+	            preparedStatement = conexion.prepareStatement("UPDATE LOGIN SET DNI = \'"+nuevoDevNombre+"\', PASS = \'"+Dev+"\', TIPO = \'3\' WHERE Dni = \'"+dni_+"\'");
+	            //FALTA ESTO FechaNacim ='1/1/2022'
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	                        
+	            if (resultSet.next()) {
+	            	//tipopersona = resultSet.getInt("Tipo");
+	            }else {
+	            	System.out.println("COMPLETADO CORRECTAMENTE");
+	            }
+	            conexion.close();
+
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
 		}
-
+		
+		
 		feedback.setText("Datos actualizados correctamente");
 		feedback.setVisible(true);
 	}
 
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
+		conexion = conexionesBBDD.conectar();
 		feedback.setVisible(false);
 		txtCheck = btnDarBaja.getText();
 		btnAceptarSolicitud.setVisible(false);
 		btnRechazar.setVisible(false);
+		
+		
 	}
 
 	/*
@@ -399,10 +642,6 @@ public class EditarUsuarioControlador implements Initializable {
 
 	public void setElegido(int nuevaPos) {
 		posElegido = nuevaPos;
-	}
-
-	public void setDevRegreso(Developer nuevoDevRegreso) {
-		devRegreso = nuevoDevRegreso;
 	}
 
 	public void OcultarBaja() {

@@ -54,6 +54,15 @@ public class Paciente extends Persona {
 		this.nacimiento = nacim;
 		this.sexo = sexo;
 	}
+	
+	public Paciente(String dni, String nombre, Date fecha) {
+		super(dni, nombre);
+		nacimiento = fecha;
+	}
+	
+	public Paciente(String dni, String nombre) {
+		super(dni, nombre);
+	}
 
 	/*
 	 * Constructor, construye un nuevo paciente con JSON

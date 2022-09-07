@@ -10,17 +10,12 @@ import java.util.concurrent.TimeUnit;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXPasswordField;
 import com.jfoenix.controls.JFXTextField;
-import application.Developer;
-import application.Medico;
-import application.Paciente;
-import application.TipoPersona;
-import javafx.animation.FillTransition;
+import bbdd.conexionesBBDD;
 import javafx.animation.ScaleTransition;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -31,10 +26,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import servicio.ServicioDevelopers;
-import servicio.ServicioLogin;
-import servicio.ServicioMedicos;
-import servicio.ServicioPacientes;
 
 /*
  * CONTROLADOR PANTALLA LOGIN
@@ -81,14 +72,6 @@ public class LoginControlador {
 	}
 
 	/*
-	 * Instanciar los servicios
-	 */
-	private ServicioLogin sl = ServicioLogin.getInstance();
-	private ServicioDevelopers sd = ServicioDevelopers.getInstance();
-	private ServicioPacientes sp = ServicioPacientes.getInstance();
-	private ServicioMedicos sm = ServicioMedicos.getInstance();
-
-	/*
 	 * Metodo para iniciar sesion
 	 * 
 	 * @exception IOException
@@ -103,85 +86,78 @@ public class LoginControlador {
 		}
 		String dni = txtDniLogin.getText();
 		String password = txtPasswordLogin.getText();
-		boolean isLoged = sl.doLogin(dni, password);
-		if (isLoged) {
-			if (sl.getTipoPersona() == TipoPersona.MEDICO) {
-				try {
-					Medico nuevoYo = sm.getMedico(dni, password);
-					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalMedico.fxml"));
-					PpalMedicoControlador controlPpalMedico = new PpalMedicoControlador();
-					loader.setController(controlPpalMedico);
-					Parent rootMedico = loader.load();
-					Stage stage = new Stage();
-					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
-					stage.setTitle("Life++");
-					stage.setScene(new Scene(rootMedico));
-					controlPpalMedico.setYo(nuevoYo);
-					stage.setMinHeight(600);
-					stage.setMinWidth(600);
-					Stage s_login = (Stage) BtnInicio.getScene().getWindow();
-					stage.setHeight(s_login.getHeight());
-					stage.setWidth(s_login.getWidth());
-					stage.setX(s_login.getX());
-					stage.setY(s_login.getY());
-					stage.show();
-					s_login.hide();
+		int tipopersona = 0;
+		
+		tipopersona = conexionesBBDD.check_login(dni, password);
+		if (tipopersona == 1) {
+			try {
+				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalPaciente.fxml"));
+				PpalPacienteControlador controlPpalPaciente = new PpalPacienteControlador(dni);
+				loader.setController(controlPpalPaciente);
+				Parent rootPaciente = loader.load();
+				Stage stage = new Stage();
+				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
+				stage.setTitle("Life++");
+				stage.setScene(new Scene(rootPaciente));
+				stage.setMinHeight(600);
+				stage.setMinWidth(600);
+				Stage s_login = (Stage) BtnInicio.getScene().getWindow();
+				//stage.setHeight(s_login.getHeight());
+				//stage.setWidth(s_login.getWidth());
+				stage.setX(s_login.getX());
+				stage.setY(s_login.getY());
+				stage.show();
+				s_login.hide();
 
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			} else if (sl.getTipoPersona() == TipoPersona.PACIENTE) {
-				try {
-					Paciente nuevoYo = sp.getPaciente(dni, password);
-					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalPaciente.fxml"));
-					PpalPacienteControlador controlPpalPaciente = new PpalPacienteControlador();
-					controlPpalPaciente.setYo(nuevoYo);
-					loader.setController(controlPpalPaciente);
-					Parent rootPaciente = loader.load();
-					Stage stage = new Stage();
-					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
-					stage.setTitle("Life++");
-					stage.setScene(new Scene(rootPaciente));
-					stage.setMinHeight(600);
-					stage.setMinWidth(600);
-					Stage s_login = (Stage) BtnInicio.getScene().getWindow();
-					stage.setHeight(s_login.getHeight());
-					stage.setWidth(s_login.getWidth());
-					stage.setX(s_login.getX());
-					stage.setY(s_login.getY());
-					stage.show();
-					s_login.hide();
-
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			} else if (sl.getTipoPersona() == TipoPersona.DEVELOPER) {
-				try {
-					Developer nuevoYo = sd.getDeveloper(dni, password);
-					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalDeveloper.fxml"));
-					PpalDeveloperControlador controlDeveloper = new PpalDeveloperControlador();
-					controlDeveloper.setYo(nuevoYo);
-					loader.setController(controlDeveloper);
-					Parent rootDeveloper = loader.load();
-					Stage stage = new Stage();
-					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
-					stage.setTitle("Life++");
-					stage.setScene(new Scene(rootDeveloper));
-					stage.setMinHeight(600);
-					stage.setMinWidth(600);
-					Stage s_login = (Stage) BtnInicio.getScene().getWindow();
-					stage.setHeight(s_login.getHeight());
-					stage.setWidth(s_login.getWidth());
-					stage.setX(s_login.getX());
-					stage.setY(s_login.getY());
-					stage.show();
-					s_login.hide();
-
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-			executor.shutdown();
+		} else if (tipopersona == 2) {
+			try {
+				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalMedico.fxml"));
+				PpalMedicoControlador controlPpalMedico = new PpalMedicoControlador(dni);
+				loader.setController(controlPpalMedico);
+				Parent rootMedico = loader.load();
+				Stage stage = new Stage();
+				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
+				stage.setTitle("Life++");
+				stage.setScene(new Scene(rootMedico));
+				stage.setMinHeight(600);
+				stage.setMinWidth(600);
+				Stage s_login = (Stage) BtnInicio.getScene().getWindow();
+				stage.setHeight(s_login.getHeight());
+				stage.setWidth(s_login.getWidth());
+				stage.setX(s_login.getX());
+				stage.setY(s_login.getY());
+				stage.show();
+				s_login.hide();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (tipopersona == 3) {
+			try {
+				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalDeveloper.fxml"));
+				PpalDeveloperControlador controlDeveloper = new PpalDeveloperControlador(dni);
+				loader.setController(controlDeveloper);
+				Parent rootDeveloper = loader.load();
+				Stage stage = new Stage();
+				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
+				stage.setTitle("Life++");
+				stage.setScene(new Scene(rootDeveloper));
+				stage.setMinHeight(600);
+				stage.setMinWidth(600);
+				Stage s_login = (Stage) BtnInicio.getScene().getWindow();
+				stage.setHeight(s_login.getHeight());
+				stage.setWidth(s_login.getWidth());
+				stage.setX(s_login.getX());
+				stage.setY(s_login.getY());
+				stage.show();
+				s_login.hide();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		} else {
 			labelOcultoLogin.setVisible(true);
 		}

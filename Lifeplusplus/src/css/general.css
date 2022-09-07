@@ -2,6 +2,35 @@
 	-fx-background-color: white;
 }
 
+.BtnGeneral2{
+	-fx-background-color: #913650;
+	-fx-text-fill: #FFF;
+}
+
+.BtnGeneral2:hover{
+	-fx-background-color: transparent;
+	-fx-text-fill: #692639;
+	-fx-border-color: #692639;
+	-fx-border-width: 1px;
+	-fx-border-style: solid;
+}
+
+.BtnGeneral3{
+	-fx-background-color: rgb(255, 235, 235);
+	-fx-text-fill: #EB7193;
+	-fx-background-radius: 15px;
+	-fx-border-radius: 15px;
+}
+
+.BtnGeneral3:hover{
+	-fx-background-color: transparent;
+	-fx-text-fill: white;
+	-fx-border-color: white;
+	-fx-background-radius: 15px;
+	-fx-border-radius: 15px;
+	-fx-border-style: solid;
+}
+
 .BtnGeneral1{
 	-fx-background-color: #EB7193;
 	-fx-text-fill: #FFF;
@@ -70,27 +99,47 @@
 	-fx-background-size: 100%;
 }
 
+.imagenppalpaciente{
+	-fx-background-image: url("../Img/fondoppalpaciente.png");
+	-fx-background-repeat: no-repeat;
+	-fx-background-size: 110%;
+}
+
+.imagenppalmedico{
+	-fx-background-image: url("../Img/fondoppalmedico.png");
+	-fx-background-position: center, center;
+	-fx-background-repeat: no-repeat;
+	-fx-background-size: 110%;
+}
+
+.fondoppalpaciente{
+    -fx-background-color: #ffffff;
+}
+
 .colorfondo{
-	-fx-background-color: linear-gradient(to right top, #E21950, #E21950);
+	-fx-background-color: #e2194f;
+	/*-fx-background-color: linear-gradient(to right top, #e2194fbb, #E21950);*/
 	-fx-background-radius: 30px;
 	-fx-border-radius: 30px;
     -fx-border-width: 3px;
 	-fx-opacity: 0.6;
+	
 }
 
 .logologin {
 	-fx-background-image: url("../Img/avatar.png");
 	-fx-background-repeat: no-repeat;
     -fx-background-position: center, center;
-    -fx-background-size: 25%;
+    -fx-background-size: 50%;
 	
 }
 
 .BtnGeneral1{
 	-fx-background-color: #EB7193;
 	-fx-background-radius: 15px;
-	-fx-text-fill: #FFF;
 	-fx-border-radius: 15px;
+	-fx-text-fill: #FFF;
+
 
 }
 
@@ -149,10 +198,23 @@
 	-fx-background-image: url("../Img/avatarchica.png");
 	-fx-background-repeat: no-repeat;
     -fx-background-position: center, center;
-    -fx-background-size: 35%;
+    -fx-background-size: 90%;
 	
 }
 
+.logologinpaciente2 {
+	-fx-background-image: url("../Img/avatarchica.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center, center;
+    -fx-background-size: 70%;
+}
+
+.logologinpaciente3 {
+	-fx-background-image: url("../Img/avatarchica.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center, center;
+    -fx-background-size: 50%;
+}
 .buttonppalpaciente {
   -fx-background-color: #EB7193;
   -fx-text-fill: #FFF;
@@ -172,3 +234,20 @@
 	-fx-background-position: center, center;
 	-fx-background-size: 50%;
 }
+
+.slideroxigenacion .track {
+	-fx-background-color: linear-gradient(to right,red , red, yellow 90%,  rgb(16, 241, 16)100%);
+	-fx-background-radius: 0;
+}
+.sliderrpm .track {
+	-fx-background-color: linear-gradient(to right, red 0%, yellow, rgb(16, 241, 16),yellow,red 100% );
+	-fx-background-radius: 0;
+}
+
+.slider .thumb{
+	-fx-pref-height: 30px;
+	-fx-pref-width: 10px;
+	-fx-background-radius: 0;
+	-fx-background-color:rgba(255, 255, 255, 0.479);
+}
+

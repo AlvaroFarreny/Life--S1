@@ -1,31 +1,17 @@
 package controlador;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXPasswordField;
 import com.jfoenix.controls.JFXTextField;
 
-import application.Medico;
-import application.Paciente;
-import application.Persona;
+import bbdd.conexionesBBDD;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -36,7 +22,6 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import servicio.ServicioPacientes;
 
 /*
  * CONTROLADOR PANTALLA REGISTRO PACIENTE
@@ -55,12 +40,7 @@ public class RegistroPacientesControlador {
 	private CheckBox selectMasculino, selectFemenino;
 	@FXML
 	private Label txtError;
-	// Instanciacion de servicio
-	private ServicioPacientes sp;
-
-	public RegistroPacientesControlador() {
-		sp = ServicioPacientes.getInstance();
-	}
+	
 
 	/*
 	 * Metodo para confirmar el registro como paciente Validacion de campos
@@ -68,10 +48,12 @@ public class RegistroPacientesControlador {
 	 */
 	@FXML
 	public void ConfirmarRegistroPaciente(ActionEvent event) {
+				
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		String nombre = txtNombrePaciente.getText();
 		String dni = txtDniPaciente.getText();
 		String correo = txtCorreoPaciente.getText();
+		int sexo = (selectMasculino.isSelected())?1:0;
 		String fecha = null;
 		Date fechaAux = null;
 		try {
@@ -89,9 +71,9 @@ public class RegistroPacientesControlador {
 			txtError.setText("El nombre tiene que tener Nombre y Apellidos");
 		} else if (dni.isEmpty()) {
 			txtError.setText("El campo de DNI está vacío");
-		} else if (sp.checkIfExist(dni)) {
+		} /*else if (sp.checkIfExist(dni)) {
 			txtError.setText("El paciente ya está registrado");
-		} else if (correo.isEmpty()) {
+		} */else if (correo.isEmpty()) {
 			txtError.setText("El campo de correo está vacío");
 		} else if (!validarCorreo(correo)) {
 			txtError.setText("El formato del correo es incorrecto");
@@ -107,16 +89,11 @@ public class RegistroPacientesControlador {
 			txtError.setText("Las contraseñas no coinciden");
 		} else {
 			try {
-				Paciente p = new Paciente(dni, nombre, password, correo, sdf.parse(fecha),
-						selectMasculino.isSelected());
-				sp.addPaciente(p);
-				sp.savePacientes();
+				conexionesBBDD.crearPacientes(dni, password, nombre, correo, fecha, sexo, 1);
+				
+			}catch (Exception e) {
 
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
-
 			try {
 				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/Login.fxml"));
 				LoginControlador controlLogin = new LoginControlador();
@@ -218,8 +195,10 @@ public class RegistroPacientesControlador {
 		try {
 			if (selectFemenino.isSelected()) {
 				selectMasculino.setSelected(false);
+				
 			} else {
 				selectMasculino.setSelected(true);
+				
 			}
 
 		} catch (Exception e) {
@@ -238,8 +217,10 @@ public class RegistroPacientesControlador {
 		try {
 			if (selectMasculino.isSelected()) {
 				selectFemenino.setSelected(false);
+				
 			} else {
 				selectFemenino.setSelected(true);
+				
 			}
 
 		} catch (Exception e) {
@@ -272,5 +253,4 @@ public class RegistroPacientesControlador {
 		Matcher m = p.matcher(nombre);
 		return m.find();
 	}
-
 }

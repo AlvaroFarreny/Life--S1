@@ -4,10 +4,19 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Observable;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.ResourceBundle;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.dlsc.gmapsfx.GoogleMapView;
 import com.dlsc.gmapsfx.javascript.event.GMapMouseEvent;
@@ -17,13 +26,12 @@ import com.dlsc.gmapsfx.javascript.object.LatLong;
 import com.dlsc.gmapsfx.javascript.object.MapOptions;
 import com.dlsc.gmapsfx.javascript.object.MapTypeIdEnum;
 import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXListView;
 
 import application.Medico;
 import application.Paciente;
 import application.Solicitud;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import bbdd.conexionesBBDD;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -35,17 +43,11 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
-import servicio.ServicioAyuda;
-import servicio.ServicioLogin;
-import servicio.ServicioPacientes;
 
 /*
  * CONTROLADOR PANTALLA PRINCIPAL MEDICO
@@ -53,8 +55,7 @@ import servicio.ServicioPacientes;
 public class PpalMedicoControlador implements Initializable {
 
 	@FXML
-	private JFXButton BtnCerrarSesion_, ModificarPerfil, PedirAyuda, BtnDescargar, EditarPerfil, RespuestaAyuda,
-			DescargadeHistorial;
+	private JFXButton BtnCerrarSesion_, PedirAyuda, BtnDescargar, EditarPerfil, RespuestaAyuda, DescargadeHistorial;
 	@FXML
 	private ResourceBundle resources;
 	@FXML
@@ -83,16 +84,11 @@ public class PpalMedicoControlador implements Initializable {
 	private Label txtNombre, txtDni, txtSexo, txtFecha, txtContacto, textoCentral, tituloOxigenacion, tituloPulsaciones;
 	@FXML
 	protected GoogleMapView mapView;
+	@FXML
+	protected Pane Foto;
 
 	private Medico yo;
-
-	/*
-	 * Instanciar servicios
-	 */
-	private ServicioPacientes sp = ServicioPacientes.getInstance();
-	private ServicioAyuda sa = ServicioAyuda.getInstance();
-	private ServicioLogin sl = ServicioLogin.getInstance();
-
+	private int contador = 200;
 	private int[] ubiPacientes = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 	private Label[] labelesPacientes = new Label[8];
 	private JFXButton[] botonesPacientes = new JFXButton[8];
@@ -100,7 +96,83 @@ public class PpalMedicoControlador implements Initializable {
 	private GoogleMap map;
 	private DecimalFormat formatter = new DecimalFormat("###.00000");
 	private Paciente elegidoP = null;
+	
+	//COPIAR ESTO PARA QUE FUNCIONE LA SQL
+	String sql;
+	Connection conexion = null;
+	PreparedStatement preparedStatement = null;
+	ResultSet resultSet = null;
+	java.util.List<Paciente> pacientes;
+	XYChart.Series seriebpm = new XYChart.Series();
+	XYChart.Series serieheart = new XYChart.Series();
+	String dni_;
+	
+	public PpalMedicoControlador(String dni_) {
+		this.dni_ = dni_;		
+	}
+	
+	/*
+	 * Metodo para pasar datos del pulsometro por los linechart
+	 * */
+	Runnable actualizarPulsometroLinechart = new Runnable() {
+		public void run() {
+			try {
+				Platform.runLater(() -> {
+					
+					conexion = conexionesBBDD.conectar();
+					try {
+			            preparedStatement = conexion.prepareStatement("SELECT ID,heart_rate, bpm FROM datos_pulsometro ORDER BY ID DESC LIMIT 14");			            
+			            preparedStatement.setString(1,"");
+			            resultSet = preparedStatement.executeQuery();
+			                        
+			            if (resultSet.next()) {
+			            	LineChart.setTitle(resultSet.getString("heart_rate"));
+			            	LCSangre.setTitle(resultSet.getString("bpm"));
+			            	contador += 100;
+			            	if(seriebpm.getData().size() >= 15)
+			            	{
+			            		seriebpm.getData().remove(0);
+			            	}
+			            	if(seriebpm.getData().size() >= 15)
+			            	{
+			            		seriebpm.getData().remove(0);
+			            	}
+			            	seriebpm.getData().add(new XYChart.Data(String.valueOf(contador), Integer.parseInt(resultSet.getString("bpm"))));
+			            	serieheart.getData().add(new XYChart.Data(String.valueOf(contador), Integer.parseInt(resultSet.getString("heart_rate"))));
+			            	//seriebpm.getChart();
+			            	//series.getData().remove(0);
+			            	LCSangre.getData().add(seriebpm);
+			            	LineChart.getData().add(serieheart);
+			            	LCSangre.setTitle(resultSet.getString("heart_rate"));
+			            	LCSangre.setTitle(resultSet.getString("bpm"));
+			            	//Barras debajo de datos dinamicos			            	
+			            }else {
+			            	System.out.println("ERROR");
+			            }
+			        } catch (Exception e2) {
+			        	System.out.println(e2);
+			        } finally {
+			        	try {
+							conexion.close();
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+			        }
+				});
+			} catch (Exception e) {
+				System.out.println("Error en los hilos del bloqueo del login");
+				// e.printStackTrace();
+			}
+		}
+	};
 
+	ScheduledExecutorService executor;
+
+	
+	
+	
+	
 	/*
 	 * Metodo para cerrar sesion y volver a pantalla login
 	 * 
@@ -139,14 +211,14 @@ public class PpalMedicoControlador implements Initializable {
 	public void EditarPerfil() {
 		try {
 			FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/EditarUsuario.fxml"));
-			EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador();
+			EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador(dni_);
 			loader.setController(editarUsuarioControlador);
 			Parent rootLogin = loader.load();
 			Stage stage = new Stage();
 			stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
 			stage.setTitle("Life++");
 			stage.setScene(new Scene(rootLogin));
-			editarUsuarioControlador.setMedicoEditable(yo);
+			editarUsuarioControlador.setMedicoEditable(dni_);
 			editarUsuarioControlador.setMedicoRegreso(yo);
 			editarUsuarioControlador.OcultarBaja();
 			stage.setMinHeight(600);
@@ -171,9 +243,8 @@ public class PpalMedicoControlador implements Initializable {
 	 */
 	public void PedirAyuda(ActionEvent event) throws IOException {
 		try {
-			String dni_ = yo.getDni();
 			FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/SolicitarAyudaPaciente.fxml"));
-			SolicitarAyuda solicitarAyuda = new SolicitarAyuda();
+			SolicitarAyuda solicitarAyuda = new SolicitarAyuda(dni_, 2);
 			loader.setController(solicitarAyuda);
 			Parent rootLogin = loader.load();
 			Stage stage = new Stage();
@@ -181,8 +252,6 @@ public class PpalMedicoControlador implements Initializable {
 			stage.setTitle("Life++");
 			stage.setScene(new Scene(rootLogin));
 			solicitarAyuda.getSolucionArea().setVisible(false);
-			solicitarAyuda.numDni.setText(dni_);
-			solicitarAyuda.setMedicoRegreso(yo);
 			stage.setMinHeight(600);
 			stage.setMinWidth(600);
 			Stage s_login = (Stage) BtnCerrarSesion_.getScene().getWindow();
@@ -204,26 +273,30 @@ public class PpalMedicoControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void CargarPacientes(KeyEvent event) throws IOException {
-		labelesPacientes[0] = labelP0;
-		labelesPacientes[1] = labelP1;
-		labelesPacientes[2] = labelP2;
-		labelesPacientes[3] = labelP3;
-		labelesPacientes[4] = labelP4;
-		labelesPacientes[5] = labelP5;
-		labelesPacientes[6] = labelP6;
-		labelesPacientes[7] = labelP7;
+		
+		pacientes = new ArrayList();
 
-		botonesPacientes[0] = botonP0;
-		botonesPacientes[1] = botonP1;
-		botonesPacientes[2] = botonP2;
-		botonesPacientes[3] = botonP3;
-		botonesPacientes[4] = botonP4;
-		botonesPacientes[5] = botonP5;
-		botonesPacientes[6] = botonP6;
-		botonesPacientes[7] = botonP7;
-
-		java.util.List<Paciente> pacientes = sp.getPacientes();
-
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT * FROM PACIENTES WHERE IDmedico = " + dni_);        
+            preparedStatement.setString(1, this.dni_);
+            
+            resultSet = preparedStatement.executeQuery();
+            
+        	while(resultSet.next())
+        	{
+        		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        		Date fn = sdf.parse(resultSet.getString("FechaNacim"));
+        		boolean s = resultSet.getInt("Sexo")==1?true:false;
+        		// (String dni, String nombre, String password, String correo, Date nacim, boolean sexo)
+        		Paciente pacienteAux = new Paciente(resultSet.getString("DNI"), resultSet.getString("Nombre"), resultSet.getString("Pass"), resultSet.getString("Correo"), fn, s);
+        		pacientes.add(pacienteAux);
+        	}      
+            conexion.close();
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		
 		if (busquedaPacientes.getText().isEmpty()) {
 			for (int i = 0; i < labelesPacientes.length; i++) {
 				try {
@@ -282,6 +355,7 @@ public class PpalMedicoControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void mostrarDatos(ActionEvent event) throws IOException {
+
 		JFXButton sourceButton = (JFXButton) event.getSource();
 		textoCentral.setText("Ubicación actual");
 		tituloOxigenacion.setVisible(true);
@@ -289,34 +363,30 @@ public class PpalMedicoControlador implements Initializable {
 		LCSangre.setVisible(true);
 		mapView.setVisible(true);
 		LineChart.setVisible(true);
-
+		txtNombre.setVisible(true);
+		txtDni.setVisible(true);
+		txtSexo.setVisible(true);
+		txtFecha.setVisible(true);
+		txtContacto.setVisible(true);
+		Foto.setVisible(true);
+		DescargadeHistorial.setVisible(true);
+		
 		for (int i = 0; i < botonesPacientes.length; i++) {
 			if (sourceButton == botonesPacientes[i]) {
-				elegidoP = sp.getPacientes().get(ubiPacientes[i]);
-
-				try {
-					String nombrePaciente = elegidoP.getNombre();
-					txtNombre.setText(nombrePaciente);
-					String dniPaciente = elegidoP.getDni();
-					txtDni.setText(dniPaciente);
-					boolean sexo = elegidoP.getSexo();
-					if (sexo == true) {
-						txtSexo.setText("Masculino");
-					} else {
-						txtSexo.setText("Femenino");
-					}
-					String correo = elegidoP.getCorreo();
-					txtContacto.setText(correo);
-					String fecha = sdf.format(elegidoP.getNacimiento());
-					txtFecha.setText(fecha);
-
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+				Paciente p = pacientes.get(i);
+				txtNombre.setText(p.getNombre());
+				txtContacto.setText(p.getCorreo());
+				txtDni.setText(p.getDni());
+				txtSexo.setText((p.getSexo()==true)?"Masculino":"Femenino");
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+				txtFecha.setText(sdf.format(p.getNacimiento()));
+				
 			}
 		}
 	}
 
+	
+	
 	/*
 	 * Metodo para descargar historial medico del paciente
 	 * 
@@ -344,14 +414,14 @@ public class PpalMedicoControlador implements Initializable {
 		if (elegidoP != null) {
 			try {
 				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/EditarUsuario.fxml"));
-				EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador();
+				EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador(dni_);
 				loader.setController(editarUsuarioControlador);
 				Parent rootLogin = loader.load();
 				Stage stage = new Stage();
 				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
 				stage.setTitle("Life++");
 				stage.setScene(new Scene(rootLogin));
-				editarUsuarioControlador.setPacienteEditable(elegidoP);
+				//editarUsuarioControlador.setPacienteEditable(elegidoP);
 				editarUsuarioControlador.setMedicoRegreso(yo);
 				editarUsuarioControlador.OcultarBaja();
 				stage.setMinHeight(600);
@@ -372,50 +442,68 @@ public class PpalMedicoControlador implements Initializable {
 
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
+		
+		mapView.setKey("AIzaSyAjkcplqD8c3KVD_KvYQzoV6uiaeXN0Veg");
+		
+		executor = Executors.newScheduledThreadPool(1);
+		executor.scheduleAtFixedRate(actualizarPulsometroLinechart, 1, 10, TimeUnit.SECONDS);
+		
+		txtNombre.setVisible(false);
+		txtDni.setVisible(false);
+		txtSexo.setVisible(false);
+		txtFecha.setVisible(false);
+		txtContacto.setVisible(false);
+		Foto.setVisible(false);
+		DescargadeHistorial.setVisible(false);
+		
+		try {
+			conexion = conexionesBBDD.conectar();
+			try {
+		        preparedStatement = conexion.prepareStatement("SELECT MEDICOS.Nombre FROM MEDICOS WHERE DNI = ?");		        
+		        preparedStatement.setString(1, this.dni_);	        
+		       
+		        resultSet = preparedStatement.executeQuery();
+		                    
+		        if (resultSet.next()) {
+		        	nombreMedico.setText(resultSet.getString("Nombre"));
+		        }else {
+		            //JOptionPane.showMessageDialog(null, "Codigo de materia no encontrado");
+		        }
+		        conexion.close();
+
+		    } catch (Exception e2) {
+		        //JOptionPane.showMessageDialog(null,"Ocurrio un error con el acceso a la base de datos " );
+		    }
+			
+		} catch (Exception e) {
+			System.out.println("No se especifica bien el medico");
+		}
+		
+		labelesPacientes[0] = labelP0;
+		labelesPacientes[1] = labelP1;
+		labelesPacientes[2] = labelP2;
+		labelesPacientes[3] = labelP3;
+		labelesPacientes[4] = labelP4;
+		labelesPacientes[5] = labelP5;
+		labelesPacientes[6] = labelP6;
+		labelesPacientes[7] = labelP7;
+
+		botonesPacientes[0] = botonP0;
+		botonesPacientes[1] = botonP1;
+		botonesPacientes[2] = botonP2;
+		botonesPacientes[3] = botonP3;
+		botonesPacientes[4] = botonP4;
+		botonesPacientes[5] = botonP5;
+		botonesPacientes[6] = botonP6;
+		botonesPacientes[7] = botonP7;
+		
 		tituloOxigenacion.setVisible(false);
 		tituloPulsaciones.setVisible(false);
 		LCSangre.setVisible(false);
 		mapView.setVisible(false);
 		LineChart.setVisible(false);
 		mapView.addMapInitializedListener(() -> configureMap());
-		XYChart.Series series = new XYChart.Series();
-
-		series.getData().add(new XYChart.Data("0", 0));
-		series.getData().add(new XYChart.Data("500", 200));
-		series.getData().add(new XYChart.Data("1000", 100));
-		series.getData().add(new XYChart.Data("1500", 507));
-		series.getData().add(new XYChart.Data("2000", 200));
-		series.getData().add(new XYChart.Data("2500", 656));
-		series.getData().add(new XYChart.Data("3000", 547));
-		series.getData().add(new XYChart.Data("3500", 200));
-		series.getData().add(new XYChart.Data("4000", 900));
-		series.getData().add(new XYChart.Data("4500", 390));
-		series.getData().add(new XYChart.Data("5000", 600));
-		LineChart.getData().addAll(series);
-
-		XYChart.Series seriess = new XYChart.Series();
-		XYChart.Series seriess_ = new XYChart.Series();
-		seriess.getData().add(new XYChart.Data("0", 0));
-		seriess.getData().add(new XYChart.Data("300", 200));
-		seriess.getData().add(new XYChart.Data("400", 100));
-		seriess.getData().add(new XYChart.Data("500", 507));
-		seriess.getData().add(new XYChart.Data("600", 200));
-		seriess.getData().add(new XYChart.Data("700", 656));
-		seriess.getData().add(new XYChart.Data("800", 547));
-		seriess.getData().add(new XYChart.Data("900", 200));
-		seriess.getData().add(new XYChart.Data("1000", 900));
-
-		seriess_.getData().add(new XYChart.Data("0", 0));
-		seriess_.getData().add(new XYChart.Data("300", 400));
-		seriess_.getData().add(new XYChart.Data("400", 656));
-		seriess_.getData().add(new XYChart.Data("500", 547));
-		seriess_.getData().add(new XYChart.Data("600", 200));
-		seriess_.getData().add(new XYChart.Data("700", 900));
-		seriess_.getData().add(new XYChart.Data("800", 390));
-		seriess_.getData().add(new XYChart.Data("900", 600));
-		seriess_.getData().add(new XYChart.Data("1000", 600));
-		LCSangre.getData().addAll(seriess);
-		LCSangre.getData().addAll(seriess_);
+		
 		try {
 			CargarPacientes(null);
 		} catch (Exception e) {
@@ -423,22 +511,63 @@ public class PpalMedicoControlador implements Initializable {
 		}
 	}
 
-	public void setYo(Medico nuevoYo) {
-		yo = nuevoYo;
+	public double Latitud() {
+		double latitud=0;
+		conexion = conexionesBBDD.conectar();
 		try {
-			nombreMedico.setText(yo.getNombre());
-		} catch (Exception e) {
-			System.out.println("No se especifica bien el medico");
-		}
-	}
+            preparedStatement = conexion.prepareStatement("SELECT datos_gps.Latitud FROM datos_gps ORDER BY Fecha desc limit 1");
+            
+            resultSet = preparedStatement.executeQuery();          
+            
+            conexion.close();
+            
+            if (resultSet.next()) {
+            	latitud=resultSet.getDouble("Latitud");
 
+            }else {
+            	System.out.println("ERROR");
+            }
+            
+
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		
+		return latitud;
+	}
+	
+	public double Longitud() {
+		double longitud=0;
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT datos_gps.Longitud FROM datos_gps ORDER BY Fecha desc limit 1");
+            
+            resultSet = preparedStatement.executeQuery();          
+            
+            conexion.close();
+            
+            if (resultSet.next()) {
+            	longitud=resultSet.getDouble("Longitud");
+
+            }else {
+            	System.out.println("ERROR");
+            }
+            
+
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		
+		return longitud;
+	}
+	
 	/*
 	 * Configuracion del mapa
 	 */
 	protected void configureMap() {
 		MapOptions mapOptions = new MapOptions();
 
-		mapOptions.center(new LatLong(47.6097, -122.3331)).mapType(MapTypeIdEnum.ROADMAP).zoom(9);
+		mapOptions.center(new LatLong(Latitud(), Longitud())).mapType(MapTypeIdEnum.ROADMAP).zoom(15);
 		map = mapView.createMap(mapOptions, false);
 
 		map.addMouseEventHandler(UIEventType.click, (GMapMouseEvent event) -> {
@@ -452,10 +581,8 @@ public class PpalMedicoControlador implements Initializable {
 	@FXML
 	void verRespuesta(ActionEvent event) {
 		try {
-			String dni_ = yo.getDni();
-
 			FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/SolicitarAyudaPaciente.fxml"));
-			VerRespuesta verrespuesta = new VerRespuesta();
+			VerRespuesta verrespuesta = new VerRespuesta(dni_, 2);
 			loader.setController(verrespuesta);
 			Parent rootLogin = loader.load();
 			Stage stage = new Stage();
@@ -463,14 +590,22 @@ public class PpalMedicoControlador implements Initializable {
 			stage.setTitle("Life++");
 			stage.setScene(new Scene(rootLogin));
 			verrespuesta.getBotonEnviar().setVisible(false);
-			Solicitud ayudaelegida = sa.getAyuda(dni_);
-			verrespuesta.setYo(ayudaelegida);
+			verrespuesta.BloquearLabels();
+			conexion = conexionesBBDD.conectar();
+			Solicitud ayudaelegida = new Solicitud(null, null);
+			try {
+	            preparedStatement = conexion.prepareStatement("SELECT * FROM Ayudas");        
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	            
+	            ayudaelegida = new Solicitud(resultSet.getString("IDayuda"), resultSet.getString("DniUsuario"));
+  
+	            conexion.close();
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
 
-			verrespuesta.textAreaDescripcion.setText(ayudaelegida.getDescripcion());
-			verrespuesta.textAreaSolucion.setText(ayudaelegida.getSolucion());
-			verrespuesta.numDni.setText(ayudaelegida.getDni());
-
-			verrespuesta.setMedicoRegreso(yo);
 			stage.setMinHeight(600);
 			stage.setMinWidth(600);
 			Stage s_login = (Stage) BtnCerrarSesion_.getScene().getWindow();

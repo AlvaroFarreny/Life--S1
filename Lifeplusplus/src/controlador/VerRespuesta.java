@@ -3,13 +3,14 @@ package controlador;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTextArea;
 
-import application.Developer;
-import application.Medico;
-import application.Paciente;
 import application.Solicitud;
+import bbdd.conexionesBBDD;
 
 import java.io.IOException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ResourceBundle;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -20,11 +21,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
-import servicio.ServicioAyuda;
-import servicio.ServicioDevelopers;
-import servicio.ServicioLogin;
-import servicio.ServicioMedicos;
-import servicio.ServicioPacientes;
 
 /*
  * CONTROLADOR PANTALLA VER RESPUESTA DE LA SOLICITUD DE AYUDA
@@ -36,62 +32,39 @@ public class VerRespuesta {
 	@FXML
 	private URL location;
 	@FXML
-	JFXTextArea textAreaDescripcion;
+	private JFXTextArea textAreaDescripcion;
 	@FXML
-	Label numDni;
+	private Label tituloPrincipal, numDni, txterror;
 	@FXML
 	private JFXButton enviarAyudaBtn, btnRegresar;
 	@FXML
-	TextArea textAreaSolucion;
-	@FXML
-	private Label txterror;
+	private TextArea textAreaSolucion;
 
-	/*
-	 * Variables para instanciar objetos especificos
-	 */
-	private Medico medicoRegreso = null;
-	private Paciente pacienteRegreso = null;
-	private Developer devRegreso = null;
-
-	private Medico medico;
-	private Paciente paciente;
-	private Solicitud Yo;
-
-	// Instanciar servicios
-	private ServicioMedicos sm = ServicioMedicos.getInstance();
-	private ServicioPacientes sp = ServicioPacientes.getInstance();
-	private ServicioDevelopers sd = ServicioDevelopers.getInstance();
-	private ServicioAyuda sa = ServicioAyuda.getInstance();
-	private ServicioLogin sl = ServicioLogin.getInstance();
+	//COPIAR ESTO PARA QUE FUNCIONE LA SQL
+	String sql;
+	Connection conexion = null;
+	PreparedStatement preparedStatement = null;
+	ResultSet resultSet = null;
 
 	Solicitud elegido = null;
-	private int posElegido;
 
 	/*
 	 * Setters
 	 */
-	public void setElegido(Solicitud nuevoelegido) {
-		elegido = nuevoelegido;
+	
+	private String dni_;
+	
+	private int tipo;
+	
+	public void BloquearLabels()
+	{
+		textAreaDescripcion.setEditable(false);
+		textAreaSolucion.setEditable(false);
 	}
-
-	public void setPacienteRegreso(Paciente nuevoPacienteRegreso) {
-		pacienteRegreso = nuevoPacienteRegreso;
-	}
-
-	public void setMedicoRegreso(Medico nuevoMedicoRegreso) {
-		medicoRegreso = nuevoMedicoRegreso;
-	}
-
-	public void setDevRegreso(Developer nuevoDevRegreso) {
-		devRegreso = nuevoDevRegreso;
-	}
-
-	public void setElegido(int nuevaPos) {
-		posElegido = nuevaPos;
-	}
-
-	public void setYo(Solicitud nuevoYo) {
-		Yo = nuevoYo;
+	
+	public VerRespuesta(String nuevoDni, int nuevoTipo) {
+		dni_ = nuevoDni;
+		tipo = nuevoTipo;
 	}
 
 	public JFXButton getBotonEnviar() {
@@ -110,17 +83,16 @@ public class VerRespuesta {
 	 */
 	@FXML
 	public void Regresar(ActionEvent event) throws IOException {
-		if (pacienteRegreso != null) {
+		if (tipo == 1) { // PACIENTE
 			try {
 				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalPaciente.fxml"));
-				PpalPacienteControlador ppalPacienteControlador = new PpalPacienteControlador();
+				PpalPacienteControlador ppalPacienteControlador = new PpalPacienteControlador(dni_);
 				loader.setController(ppalPacienteControlador);
 				Parent rootLogin = loader.load();
 				Stage stage = new Stage();
 				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
 				stage.setTitle("Life++");
 				stage.setScene(new Scene(rootLogin));
-				ppalPacienteControlador.setYo(pacienteRegreso);
 				stage.setMinHeight(600);
 				stage.setMinWidth(600);
 				Stage s_login = (Stage) btnRegresar.getScene().getWindow();
@@ -134,17 +106,16 @@ public class VerRespuesta {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		} else if (medicoRegreso != null) {
+		} else if(tipo == 2) { // MEDICO
 			try {
 				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalMedico.fxml"));
-				PpalMedicoControlador ppalMedicoControlador = new PpalMedicoControlador();
+				PpalMedicoControlador ppalMedicoControlador = new PpalMedicoControlador(dni_);
 				loader.setController(ppalMedicoControlador);
 				Parent rootLogin = loader.load();
 				Stage stage = new Stage();
 				stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
 				stage.setTitle("Life++");
 				stage.setScene(new Scene(rootLogin));
-				ppalMedicoControlador.setYo(medicoRegreso);
 				stage.setMinHeight(600);
 				stage.setMinWidth(600);
 				Stage s_login = (Stage) btnRegresar.getScene().getWindow();
@@ -158,11 +129,10 @@ public class VerRespuesta {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		} else if (devRegreso != null) {
+		} else { // DEVELOPER
 			try {
 				FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PpalDeveloper.fxml"));
-				PpalDeveloperControlador ppalDeveloperControlador = new PpalDeveloperControlador();
-				ppalDeveloperControlador.setYo(devRegreso);
+				PpalDeveloperControlador ppalDeveloperControlador = new PpalDeveloperControlador(dni_);
 				loader.setController(ppalDeveloperControlador);
 				Parent rootLogin = loader.load();
 				Stage stage = new Stage();
@@ -187,6 +157,27 @@ public class VerRespuesta {
 
 	@FXML
 	void initialize() {
+		numDni.setText(dni_);
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT * FROM Ayudas WHERE DniUsuario = ?");
+            
+            preparedStatement.setString(1, this.dni_);
+            
+            resultSet = preparedStatement.executeQuery();
+                        
+            if (resultSet.next()) {
+            	textAreaDescripcion.setText(resultSet.getString("Descripcion"));
+            	textAreaSolucion.setText(resultSet.getString("Solucion"));
+            }else {
+            	System.out.println("ERROR");
+            }
+            
+            conexion.close();
 
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		tituloPrincipal.setText("Ver respuesta de mi última consulta");
 	}
 }

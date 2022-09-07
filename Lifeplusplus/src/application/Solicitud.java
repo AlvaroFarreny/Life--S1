@@ -12,11 +12,13 @@ import com.google.gson.JsonObject;
  * @see Persona
  */
 
-public class Solicitud extends Persona {
+public class Solicitud {
 
+	private String IDayuda;
 	private String descripcion;
 	private String solucion;
 	private Boolean medico = false;
+	private String dniUsuario;
 
 	/*
 	 * Constructor, construye una nueva solicitud con argumentos
@@ -29,8 +31,15 @@ public class Solicitud extends Persona {
 	 * 
 	 * @param nuevoCorreo
 	 */
-	public Solicitud(String nuevoDni, String nuevoNombre, String nuevaPassword, String nuevoCorreo) {
+	/*public Solicitud(String nuevoDni, String nuevoNombre, String nuevaPassword, String nuevoCorreo) {
 		super(nuevoDni, nuevoNombre, nuevaPassword, nuevoCorreo);
+		// TODO Auto-generated constructor stub
+	}*/
+	
+	public Solicitud(String nuevoIDayuda, String nuevoDni) {
+		
+		IDayuda = nuevoIDayuda;
+		dniUsuario = nuevoDni;
 		// TODO Auto-generated constructor stub
 	}
 
@@ -51,43 +60,43 @@ public class Solicitud extends Persona {
 	 * 
 	 * @param medico_
 	 */
-	public Solicitud(String nuevoDni, String nuevoNombre, String nuevaPassword, String nuevoCorreo, String descripcion_,
+	/*public Solicitud(String nuevoDni, String nuevoNombre, String nuevaPassword, String nuevoCorreo, String descripcion_,
 			String solucion_, Boolean medico_) {
 		super(nuevoDni, nuevoNombre, nuevaPassword, nuevoCorreo);
 		this.descripcion = descripcion_;
 		this.solucion = solucion_;
 		this.medico = medico_;
-	}
+	}*/
 
 	/*
 	 * Constructor, construye una nueva solicitud con JSON
 	 * 
 	 * @param jSolicitudes datos JsonObject
 	 */
-	public Solicitud(JsonObject jSolicitudes) {
+	/*public Solicitud(JsonObject jSolicitudes) {
 		super(jSolicitudes);
 		this.descripcion = jSolicitudes.get("descripcion").getAsString();
 		this.solucion = jSolicitudes.get("solucion").getAsString();
 		this.medico = jSolicitudes.get("medico").getAsBoolean();
 
-	}
+	}*/
 
 	/*
 	 * Obtener una solicitud en formato String
 	 * 
 	 * @return String
 	 */
-	public String toString() {
+	/*public String toString() {
 		return "dni: " + dni + "\nnombre: " + nombre + "\npassword: " + password + "\ncorreo: " + correo
 				+ "\ndescripcion: " + descripcion + "\nsolucion: " + solucion + "\nmedico: " + medico;
-	}
+	}*/
 
 	/*
 	 * Pasar y obtener una solicitud en formato JSON
 	 * 
 	 * @return JsonObject
 	 */
-	public JsonObject toJson() {
+	/*public JsonObject toJson() {
 		JsonObject j = super.toJson();
 		j.addProperty("descripcion", this.descripcion);
 		j.addProperty("solucion", this.solucion);
@@ -95,7 +104,7 @@ public class Solicitud extends Persona {
 
 		return j;
 
-	}
+	}*/
 
 	/*
 	 * Getters
@@ -113,10 +122,22 @@ public class Solicitud extends Persona {
 		return solucion;
 	}
 
+	public String getIDayuda() {
+		return IDayuda;
+	}
+	
+	public String getDniUsuario() {
+		return dniUsuario;
+	}
+	
 	/*
 	 * Setters
 	 */
 
+	public void setDniUsuario(String nuevoDni) {
+		dniUsuario = nuevoDni;
+	}
+	
 	public void setMedico(Boolean medico) {
 		this.medico = medico;
 	}
@@ -132,5 +153,4 @@ public class Solicitud extends Persona {
 	public void enviarAyuda(String Dni, String Descripcion, Boolean Medico) {
 
 	}
-
 }

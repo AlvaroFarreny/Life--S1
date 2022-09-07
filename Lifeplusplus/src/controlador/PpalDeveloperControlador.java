@@ -2,12 +2,14 @@ package controlador;
 
 import java.io.IOException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import com.jfoenix.controls.JFXButton;
 
@@ -15,6 +17,7 @@ import application.Developer;
 import application.Medico;
 import application.Paciente;
 import application.Solicitud;
+import bbdd.conexionesBBDD;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -26,10 +29,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
-import servicio.ServicioAyuda;
-import servicio.ServicioDevelopers;
-import servicio.ServicioMedicos;
-import servicio.ServicioPacientes;
 
 /*
  * CONTROLADOR PANTALLA PRINCIPAL DEVELOPER
@@ -46,9 +45,11 @@ public class PpalDeveloperControlador implements Initializable {
 	@FXML
 	private JFXButton botonP0, botonP1, botonP2, botonP3, botonP4, botonP5, botonP6, botonP7;
 	@FXML
+	private JFXButton botonOnombre, botonOedad;
+	@FXML
 	private TextField busquedaMedicos, busquedaPacientes, busquedaAyudas;
 	@FXML
-	private Label quienSoy;
+	private Label quienSoy, feedbackOrdenar;
 	@FXML
 	private Label labelA0, labelA1, labelA2, labelA3, labelA4, labelA5, labelA6, labelA7;
 	@FXML
@@ -59,14 +60,19 @@ public class PpalDeveloperControlador implements Initializable {
 	/*
 	 * Instanciar los servicios
 	 */
-	private ServicioMedicos sm = ServicioMedicos.getInstance();
-	private ServicioPacientes sp = ServicioPacientes.getInstance();
-	private ServicioAyuda sa = ServicioAyuda.getInstance();
+	
+	String sql;
+	Connection conexion = null;
+	PreparedStatement preparedStatement = null;
+	ResultSet resultSet = null;
 
 	private boolean medicosSonSolicitudes; // Determinar si se muestran medicos confirmadors (false) o solicitudes
+	private boolean buscarPorEdad = false;
 											// (true)
 	// Estructuras para almacenar medicos para el buscador
 	private List<Medico> buscadorMedicos;
+	private List<Paciente> buscadorPacientes = new ArrayList();
+	List<Solicitud> buscadorAyudas;
 
 	private int[] ubiMedicos = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 	private int[] ubiPacientes = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -78,12 +84,19 @@ public class PpalDeveloperControlador implements Initializable {
 	private JFXButton[] botonesPacientes = new JFXButton[8];
 	private Label[] labelesAyudas = new Label[8];
 	private JFXButton[] botonesAyudas = new JFXButton[8];
+	private String dni_;
 
+	public PpalDeveloperControlador(String dni_)
+	{
+		this.dni_ = dni_;
+	}
+	
 	/*
 	 * Metodo para mostrar listado de medicos
 	 * 
 	 * @exception IOException
 	 */
+	
 	public void ElegirMedicos(ActionEvent event) throws IOException {
 		medicosSonSolicitudes = false;
 		CargarMedicos(null);
@@ -107,10 +120,41 @@ public class PpalDeveloperControlador implements Initializable {
 	public void CargarMedicos(KeyEvent event) throws IOException {
 		buscadorMedicos = new ArrayList();
 
-		if (medicosSonSolicitudes == false) {
-			buscadorMedicos = sm.getMedicos();
+		if(medicosSonSolicitudes == false) {
+			conexion = conexionesBBDD.conectar();
+			try {
+	            preparedStatement = conexion.prepareStatement("SELECT * FROM MEDICOS WHERE Verificacion = 1");
+	            
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	            
+	        	while(resultSet.next())
+	        	{
+	        		Medico medicoAux = new Medico(resultSet.getString("DNI"), resultSet.getString("Nombre"));
+	        		buscadorMedicos.add(medicoAux);
+	        	}      
+	            conexion.close();
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
 		} else {
-			buscadorMedicos = sm.getSolicitudes();
+			conexion = conexionesBBDD.conectar();
+			try {
+	            preparedStatement = conexion.prepareStatement("SELECT * FROM MEDICOS WHERE Verificacion = 0");
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	            
+	        	while (resultSet.next())
+	        	{
+	        		Medico medicoAux = new Medico(resultSet.getString("DNI"), resultSet.getString("Nombre"));
+	        		buscadorMedicos.add(medicoAux);
+	        	}      
+	            conexion.close();
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
 		}
 
 		if (busquedaMedicos.getText().isEmpty()) {
@@ -171,11 +215,37 @@ public class PpalDeveloperControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void CargarPacientes(KeyEvent event) throws IOException {
-		if (busquedaPacientes.getText().isEmpty()) {
-			for (int i = 0; i < labelesPacientes.length; i++) {
+		
+		if(buscarPorEdad == false)
+		{
+			buscadorPacientes = new ArrayList();
+			conexion = conexionesBBDD.conectar();
+			try {
+	            preparedStatement = conexion.prepareStatement("SELECT * FROM PACIENTES");        
+	            preparedStatement.setString(1, this.dni_);
+	            
+	            resultSet = preparedStatement.executeQuery();
+	            
+	            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+
+	        	while(resultSet.next())
+	        	{
+	        		String fechaString = resultSet.getString("FechaNacim");
+	        		Date fechaDate = formatter.parse(fechaString);
+	        		Paciente pacienteAux = new Paciente(resultSet.getString("DNI"), resultSet.getString("Nombre"), fechaDate);
+	        		buscadorPacientes.add(pacienteAux);
+	        	}      
+	            conexion.close();
+	        } catch (Exception e2) {
+	        	System.out.println(e2);
+	        }
+		}	
+		
+		if(busquedaPacientes.getText().isEmpty()) {
+			for(int i = 0; i < labelesPacientes.length; i++) {
 				try {
 					labelesPacientes[i].setVisible(true);
-					labelesPacientes[i].setText(sp.getPacientes().get(i).getNombre());
+					labelesPacientes[i].setText(buscadorPacientes.get(i).getNombre());
 					botonesPacientes[i].setVisible(true);
 
 				} catch (Exception e) {
@@ -196,19 +266,19 @@ public class PpalDeveloperControlador implements Initializable {
 				labelesPacientes[0].setText("No hay resultados");
 			}
 
-			for (int i = 0; i < sp.getPacientes().size(); i++) {
+			for (int i = 0; i < buscadorPacientes.size(); i++) {
 				try {
 					boolean coincideP = true;
 
 					for (int j = 0; j < longBusquedaP; j++) {
-						if (textoBusquedaP.charAt(j) != sp.getPacientes().get(i).getNombre().toLowerCase().charAt(j)) {
+						if (textoBusquedaP.charAt(j) != buscadorPacientes.get(i).getNombre().toLowerCase().charAt(j)) {
 							coincideP = false;
 						}
 					}
 					if (coincideP == true) {
 						labelesPacientes[i - correccionP].setVisible(true);
 						botonesPacientes[i - correccionP].setVisible(true);
-						labelesPacientes[i - correccionP].setText(sp.getPacientes().get(i).getNombre());
+						labelesPacientes[i - correccionP].setText(buscadorPacientes.get(i).getNombre());
 						ubiPacientes[i - correccionP] = i;
 					} else {
 						correccionP++;
@@ -229,19 +299,12 @@ public class PpalDeveloperControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void EditarUsuario(ActionEvent event) throws IOException {
-		buscadorMedicos = new ArrayList();
-
-		if (medicosSonSolicitudes == false) {
-			buscadorMedicos = sm.getMedicos();
-		} else {
-			buscadorMedicos = sm.getSolicitudes();
-		}
 
 		JFXButton sourceButton = (JFXButton) event.getSource();
 		Medico elegidoM = null;
 		Paciente elegidoP = null;
-		Solicitud elegidoA = null;
 		boolean encontrado = false;
+		String dniDestino;
 
 		for (int i = 0; i < botonesMedicos.length; i++) {
 			if (sourceButton == botonesMedicos[i]) {
@@ -250,21 +313,20 @@ public class PpalDeveloperControlador implements Initializable {
 
 				try {
 					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/EditarUsuario.fxml"));
-					EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador();
+					EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador(elegidoM.getDni(), dni_);
 					loader.setController(editarUsuarioControlador);
 					Parent rootLogin = loader.load();
 					Stage stage = new Stage();
 					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
 					stage.setTitle("Life++");
 					stage.setScene(new Scene(rootLogin));
-					editarUsuarioControlador.setMedicoEditable(elegidoM);
+					editarUsuarioControlador.setMedicoEditable(elegidoM.getDni());
 					editarUsuarioControlador.setElegido(ubiMedicos[i]);
 					if (medicosSonSolicitudes == true) {
 						editarUsuarioControlador.getBtnDarBaja().setVisible(false);
 						editarUsuarioControlador.getBtnAceptarSolicitud().setVisible(true);
 						editarUsuarioControlador.getBtnRechazarSolicitud().setVisible(true);
 					}
-					editarUsuarioControlador.setDevRegreso(yo);
 					stage.setMinHeight(600);
 					stage.setMinWidth(600);
 					Stage s_login = (Stage) botonP0.getScene().getWindow();
@@ -280,20 +342,19 @@ public class PpalDeveloperControlador implements Initializable {
 				}
 			} else if (sourceButton == botonesPacientes[i]) {
 				encontrado = true;
-				elegidoP = sp.getPacientes().get(ubiPacientes[i]);
+				elegidoP = buscadorPacientes.get(ubiPacientes[i]);
 
 				try {
 					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/EditarUsuario.fxml"));
-					EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador();
+					EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador(elegidoP.getDni(), dni_);
 					loader.setController(editarUsuarioControlador);
 					Parent rootLogin = loader.load();
 					Stage stage = new Stage();
 					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
 					stage.setTitle("Life++");
 					stage.setScene(new Scene(rootLogin));
-					editarUsuarioControlador.setPacienteEditable(elegidoP);
+					editarUsuarioControlador.setPacienteEditable(elegidoP.getDni());
 					editarUsuarioControlador.setElegido(ubiPacientes[i]);
-					editarUsuarioControlador.setDevRegreso(yo);
 					stage.setMinHeight(600);
 					stage.setMinWidth(600);
 					Stage s_login = (Stage) botonP0.getScene().getWindow();
@@ -309,15 +370,12 @@ public class PpalDeveloperControlador implements Initializable {
 				}
 			} else if (sourceButton == botonesAyudas[i]) {
 				encontrado = true;
-				elegidoA = sa.getAyudas().get(ubiAyudas[i]);
+				conexion = conexionesBBDD.conectar();
 
 				try {
 					FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/SolicitarAyudaPaciente.fxml"));
-					SolicitarAyuda solicitarAyuda = new SolicitarAyuda();
+					SolicitarAyuda solicitarAyuda = new SolicitarAyuda(buscadorAyudas.get(i).getDniUsuario(), dni_);
 					loader.setController(solicitarAyuda);
-					solicitarAyuda.setElegido(ubiAyudas[i]);
-					solicitarAyuda.setDevRegreso(yo);
-					solicitarAyuda.setYo(elegidoA);
 					Parent rootLogin = loader.load();
 					Stage stage = new Stage();
 					stage.getIcons().add(new Image("/Img/lifeplusplus.png"));
@@ -328,6 +386,7 @@ public class PpalDeveloperControlador implements Initializable {
 					Stage s_login = (Stage) botonP0.getScene().getWindow();
 					stage.setHeight(s_login.getHeight());
 					stage.setWidth(s_login.getWidth());
+					solicitarAyuda.BloquearPregunta();
 					stage.setX(s_login.getX());
 					stage.setY(s_login.getY());
 					stage.show();
@@ -340,7 +399,7 @@ public class PpalDeveloperControlador implements Initializable {
 		}
 		if (encontrado == false) {
 			FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/EditarUsuario.fxml"));
-			EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador();
+			EditarUsuarioControlador editarUsuarioControlador = new EditarUsuarioControlador(dni_, dni_);
 			loader.setController(editarUsuarioControlador);
 			Parent rootLogin = loader.load();
 			Stage stage = new Stage();
@@ -348,7 +407,6 @@ public class PpalDeveloperControlador implements Initializable {
 			stage.setTitle("Life++");
 			stage.setScene(new Scene(rootLogin));
 			editarUsuarioControlador.setDatosPersonales(yo);
-			editarUsuarioControlador.setDevRegreso(yo);
 			stage.setMinHeight(600);
 			stage.setMinWidth(600);
 			Stage s_login = (Stage) botonP0.getScene().getWindow();
@@ -360,7 +418,101 @@ public class PpalDeveloperControlador implements Initializable {
 			s_login.hide();
 		}
 	}
+	
+	public void OrdenarEdad(ActionEvent event) throws IOException {
+		
+		if(buscarPorEdad == false)
+		{
+			buscarPorEdad = true;
+			feedbackOrdenar.setText("Sí");
+		}
+		else
+		{
+			buscarPorEdad = false;
+			feedbackOrdenar.setText("No");
+		}
+		MergeSort(buscadorPacientes, 0, buscadorPacientes.size()-1);
+		CargarPacientes(null);
+	}
+	
+	private Paciente NacimientoMasAntiguo(Paciente p1, Paciente p2)
+	{
+		Paciente resultado;
+		if(p1.getNacimiento().compareTo(p2.getNacimiento()) > 0)
+		{
+	         resultado = p2;
+	    }
+		else
+	    {
+	         resultado = p1;
+	    }
+		return resultado;
+	}
+	
+	public void MergeSort(List<Paciente> lista, int inicio, int fin)
+	{
+		if(inicio < fin)
+        {
+			int medio = (inicio + fin) / 2;
+			MergeSort(lista, inicio, medio);
+			MergeSort(lista, medio+1, fin);
 
+			Merge(lista, inicio, medio, fin);
+        }
+    }
+    
+	public void Merge(List<Paciente> lista, int inicio, int medio, int fin)
+	{
+		int sizeIzq = medio - inicio + 1;
+		int sizeDcha = fin - medio;
+		Paciente arrayIzq[] = new Paciente[sizeIzq];
+		Paciente arrayDcha[] = new Paciente[sizeDcha];
+	
+		for(int i=0; i < sizeIzq; i++)
+		{
+			arrayIzq[i] = lista.get(inicio+i);
+		}
+		for(int i=0; i < sizeDcha; i++)
+		{
+			arrayDcha[i] = lista.get(medio+i+1);
+		}
+
+		int contadorIzq = 0;
+		int contadorDcha = 0;
+	
+		int i = inicio;
+	
+		while(contadorIzq < sizeIzq && contadorDcha < sizeDcha)
+		{
+			Paciente pacienteAux = NacimientoMasAntiguo(arrayIzq[contadorIzq], arrayDcha[contadorDcha]);
+			
+			if (pacienteAux.getDni() == arrayIzq[contadorIzq].getDni())
+			{
+				lista.set(i, arrayIzq[contadorIzq]);
+				contadorIzq++;
+			}
+			else
+			{
+				lista.set(i, arrayDcha[contadorDcha]);
+				contadorDcha++;
+			}
+			i++;
+		}
+
+		while(contadorIzq < sizeIzq)
+		{
+			lista.set(i, arrayIzq[contadorIzq]);
+			contadorIzq++;
+			i++;
+		}
+		while (contadorDcha < sizeDcha)
+		{
+			lista.set(i, arrayDcha[contadorDcha]);
+			contadorDcha++;
+			i++;
+	  	}
+	}
+	
 	/*
 	 * Metodo para cerrar sesion y volver a la pantalla de login
 	 * 
@@ -398,15 +550,31 @@ public class PpalDeveloperControlador implements Initializable {
 	 * @exception IOException
 	 */
 	public void CargarAyudas(KeyEvent event) throws IOException {
-		if (busquedaAyudas.getText().isEmpty()) {
-			for (int i = 0; i < labelesAyudas.length; i++) {
+		buscadorAyudas = new ArrayList();
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT * FROM Ayudas WHERE Ayudas.Solucion = \"\" OR Ayudas.Solucion IS NULL");        
+            preparedStatement.setString(1, "");
+            
+            resultSet = preparedStatement.executeQuery();
+            
+        	while(resultSet.next())
+        	{
+        		Solicitud ayudaAux = new Solicitud(resultSet.getString("IDayuda"), resultSet.getString("DniUsuario"));
+        		buscadorAyudas.add(ayudaAux);
+        	}      
+            conexion.close();
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
+		if(busquedaAyudas.getText().isEmpty()) {
+			for(int i = 0; i < labelesAyudas.length; i++) {
 				try {
 					labelesAyudas[i].setVisible(true);
-					labelesAyudas[i].setText(sa.getAyudas().get(i).getNombre()); // ver que ocurre
+					labelesAyudas[i].setText(buscadorAyudas.get(i).getDniUsuario());
 					botonesAyudas[i].setVisible(true);
 
 				} catch (Exception e) {
-
 					labelesAyudas[i].setVisible(false);
 					botonesAyudas[i].setVisible(false);
 				}
@@ -423,19 +591,19 @@ public class PpalDeveloperControlador implements Initializable {
 				labelesAyudas[0].setText("No hay resultados");
 			}
 
-			for (int i = 0; i < sa.getAyudas().size(); i++) {
+			for (int i = 0; i < buscadorAyudas.size(); i++) {
 				try {
 					boolean coincideA = true;
 
 					for (int j = 0; j < longBusquedaA; j++) {
-						if (textoBusquedaA.charAt(j) != sa.getAyudas().get(i).getNombre().toLowerCase().charAt(j)) {
+						if (textoBusquedaA.charAt(j) != buscadorAyudas.get(i).getDniUsuario().toLowerCase().charAt(j)) {
 							coincideA = false;
 						}
 					}
 					if (coincideA == true) {
 						labelesAyudas[i - correccionA].setVisible(true);
 						botonesAyudas[i - correccionA].setVisible(true);
-						labelesAyudas[i - correccionA].setText(sa.getAyudas().get(i).getNombre());
+						labelesAyudas[i - correccionA].setText(buscadorAyudas.get(i).getDniUsuario());
 						ubiAyudas[i - correccionA] = i;
 					} else {
 						correccionA++;
@@ -443,17 +611,20 @@ public class PpalDeveloperControlador implements Initializable {
 
 				} catch (Exception e) {
 
-					// System.out.println("Algo fue mal");
 					e.printStackTrace();
 				}
 			}
+		}
+		if(buscadorAyudas.isEmpty())
+		{
+			labelesAyudas[0].setVisible(true);
+			labelesAyudas[0].setText("Estamos al día!");
 		}
 	}
 
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
 		medicosSonSolicitudes = false;
-		quienSoy.setText("Trabajando como: " + yo.getNombre());
 
 		labelesMedicos[0] = labelM0;
 		labelesMedicos[1] = labelM1;
@@ -518,9 +689,26 @@ public class PpalDeveloperControlador implements Initializable {
 			System.out.println("Problemas al cargar medicos o pacientes en el initialize()");
 			// e.printStackTrace();
 		}
-	}
+		
+		conexion = conexionesBBDD.conectar();
+		try {
+            preparedStatement = conexion.prepareStatement("SELECT * FROM DEVELOPER WHERE Dni = ?");    
+            preparedStatement.setString(1, dni_);
+            
+            resultSet = preparedStatement.executeQuery();
+            
+            if(resultSet.next()) {
+            	yo = new Developer(resultSet.getString("Dni"), resultSet.getString("Nombre"), resultSet.getString("Pass"), resultSet.getString("Correo"));
+            	quienSoy.setText("Trabajando como: " + yo.getNombre());
 
-	public void setYo(Developer nuevoYo) {
-		yo = nuevoYo;
+            }else {
+            	System.out.println("ERROR");
+            }
+            
+            conexion.close();
+
+        } catch (Exception e2) {
+        	System.out.println(e2);
+        }
 	}
 }

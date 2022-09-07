@@ -56,8 +56,8 @@
                               <Font name="Arial Black" size="42.0" />
                            </font>
                         </Label>
-                        <JFXPasswordField fx:id="txtPasswordLogin" focusColor="#e31c50" onKeyReleased="#LogInConEnter" promptText="Contraseña" unFocusColor="#e31c50" GridPane.columnIndex="1" GridPane.rowIndex="4" />
                         <JFXTextField fx:id="txtDniLogin" focusColor="#e31c50" onKeyReleased="#LogInConEnter" promptText="DNI" unFocusColor="#e31c50" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                        <JFXPasswordField fx:id="txtPasswordLogin" focusColor="#e31c50" onKeyReleased="#LogInConEnter" promptText="Contraseña" unFocusColor="#e31c50" GridPane.columnIndex="1" GridPane.rowIndex="4" />
                         <Pane prefHeight="200.0" prefWidth="170.0" styleClass="logologin" stylesheets="@../css/general.css" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                         <JFXButton fx:id="BtnInicio" onAction="#iniciarSesion" prefHeight="39.0" prefWidth="205.0" styleClass="BtnGeneral1" stylesheets="@../css/general.css" text="ACCEDER" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.rowIndex="6" GridPane.valignment="CENTER">
                            <font>

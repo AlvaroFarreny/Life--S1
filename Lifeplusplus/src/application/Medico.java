@@ -63,6 +63,10 @@ public class Medico extends Persona {
 		this.rol = rol;
 		this.identificacionInstitucion = identificacionInstitucion;
 	}
+	
+	public Medico(String dni, String nombre) {
+		super(dni, nombre);
+	}
 
 	/*
 	 * Constructor, construye un nuevo medico con JSON
